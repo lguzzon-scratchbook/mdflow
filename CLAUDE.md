@@ -299,6 +299,7 @@ flow can still re-enable one layer (`safe-mode: false`). Per engine:
 | copilot | `--no-custom-instructions --disable-builtin-mcps` (user MCP config still loads) |
 | opencode | `--pure` (AGENTS.md still loads) |
 | pi | `--no-extensions --no-skills --no-prompt-templates --no-context-files --no-session` |
+| omp | `--no-extensions --no-skills --no-rules --no-session` (NOT hermetic: no `--no-prompt-templates`/`--no-context-files` equivalents in omp 18.3.2, ambient config.yml still loads; auth/sessions stay ambient in `~/.omp/agent`) |
 | grok | `--no-memory` (disables cross-session memory; MCP/plugins have no CLI kill-switch) |
 | droid / cursor-agent / agy / kimi | no controls exist — runs ambient; warns only on an explicit `_isolated: true` |
 
@@ -354,7 +355,7 @@ run-from-a-subdirectory escape. Free re-probe (no tokens):
 **System prompt (`src/system-prompt.ts` + adapter `applySystemPrompt()`):**
 the flow body is always the *user* prompt; `_system-prompt` (replace) and
 `_append-system-prompt` (string or list) control the *system* prompt.
-Translations: claude/pi → `--system-prompt`/`--append-system-prompt`; codex →
+Translations: claude/pi/omp → `--system-prompt`/`--append-system-prompt` (omp joins append segments into one value); codex →
 `-c model_instructions_file=<temp file>` / `-c developer_instructions=…`;
 gemini → `GEMINI_SYSTEM_MD=<temp file>` env (replace only — append errors).
 Engines with no mechanism (copilot, droid, opencode, cursor-agent, agy) fail
