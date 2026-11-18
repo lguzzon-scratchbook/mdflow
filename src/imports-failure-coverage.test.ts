@@ -18,9 +18,10 @@ describe("imports failure coverage", () => {
     await rm(testDir, { recursive: true, force: true });
   });
 
-  it("returns empty content for invalid descending line ranges", async () => {
-    const result = await expandImports("@./lines.txt:3-1", testDir);
-    expect(result).toBe("");
+  it("throws loudly for invalid descending line ranges instead of empty content", async () => {
+    // Old contract returned ""; the empty slice ran the engine with evidence
+    // silently missing. Now it throws at parse time.
+    await expect(expandImports("@./lines.txt:3-1", testDir)).rejects.toThrow(/must not exceed end/);
   });
 
   it("throws when line range syntax is malformed", async () => {

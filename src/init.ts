@@ -50,7 +50,7 @@ import {
 	inspectEvalSuiteStatic,
 	renderEvalTemplate,
 } from "./eval-convention";
-import { stampCreatedVersion } from "./compat";
+import { mdflowVersion, stampCreatedVersion } from "./compat";
 import { assertPlainDirectory } from "./contained-write";
 import type { AgentFrontmatter } from "./types";
 import { ensureFlowIdentity } from "./evolution-core";
@@ -171,14 +171,7 @@ export function loadCatalog(): CatalogEntry[] {
 }
 
 function packageVersion(): string {
-	try {
-		const pkg = JSON.parse(
-			readFileSync(join(import.meta.dir, "..", "package.json"), "utf-8"),
-		);
-		return String(pkg.version ?? "unknown");
-	} catch {
-		return "unknown";
-	}
+	return mdflowVersion();
 }
 
 /**

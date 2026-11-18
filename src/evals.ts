@@ -30,6 +30,7 @@ import { isRegistryPath, resolveProjectRoot } from "./project-root";
 import { resolveEngine } from "./command";
 import { atomicWriteJson, withAtomicFileLock } from "./evolution-store";
 import { canonicalFlowPath, findRepositoryRoot, identifyFlow, resolveEvolutionPolicy, sha256, splitFlowDocument } from "./evolution-core";
+import { mdflowVersion } from "./compat";
 import { parseImports } from "./imports-parser";
 import { parseFrontmatter } from "./parse";
 import { resolveHooksFile } from "./hooks";
@@ -483,11 +484,7 @@ export function getEvalLedgerEntry(
 }
 
 function packageVersion(): string {
-  try {
-    return (JSON.parse(readFileSync(join(import.meta.dir, "..", "package.json"), "utf8")) as { version: string }).version;
-  } catch {
-    return "unknown";
-  }
+  return mdflowVersion();
 }
 
 /**

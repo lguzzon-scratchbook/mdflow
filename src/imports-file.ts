@@ -55,10 +55,17 @@ function isGlobPatternInternal(path: string): boolean {
 function parseLineRangeInternal(path: string): { path: string; start?: number; end?: number } {
   const match = path.match(/^(.+):(\d+)-(\d+)$/);
   if (match && match[1] && match[2] && match[3]) {
+    const start = parseInt(match[2], 10);
+    const end = parseInt(match[3], 10);
+    if (start < 1 || start > end) {
+      throw new Error(
+        `Invalid line range ${start}-${end} in "${path}": line numbers start at 1 and start must not exceed end`
+      );
+    }
     return {
       path: match[1],
-      start: parseInt(match[2], 10),
-      end: parseInt(match[3], 10),
+      start,
+      end,
     };
   }
   return { path };
@@ -85,6 +92,11 @@ function parseSymbolExtractionInternal(path: string): { path: string; symbol?: s
  * imports empty context runs the engine with the evidence missing.
  */
 export function extractLines(content: string, start: number, end: number): string {
+  if (start < 1 || start > end) {
+    throw new Error(
+      `Invalid line range ${start}-${end}: line numbers start at 1 and start must not exceed end`
+    );
+  }
   const lines = content.split("\n");
   if (start > lines.length) {
     throw new Error(

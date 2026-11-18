@@ -72,4 +72,22 @@ describe("logger secret redaction", () => {
     expect(logContent).toContain("opus");
     expect(logContent).toContain("Test log with secrets");
   });
+
+  test("redacts secrets nested in array args", async () => {
+    const logger = initLogger(testAgentFile);
+
+    logger.info({
+      tokens: ["sk-1", "sk-2"],
+      models: ["opus", "sonnet"],
+    }, "Test log with array secrets");
+
+    logger.flush();
+    await new Promise((resolve) => setTimeout(resolve, 100));
+
+    const logContent = readFileSync(logPath, "utf-8");
+
+    expect(logContent).not.toContain("sk-1");
+    expect(logContent).not.toContain("sk-2");
+    expect(logContent).toContain("opus");
+  });
 });
