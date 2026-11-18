@@ -44,5 +44,4 @@ silent: true
 Analyze the CI output above and summarize any failures.
 ```
 
-
 Fix the current README.md based on the codebase

@@ -75,7 +75,8 @@ Vercel with Root Directory = `site`). Rules:
 ## Architecture
 
 ### Core Flow (`src/index.ts`)
-```
+
+```text
 .md file → parseFrontmatter() → resolveEngine(ladder, see below)
         → loadFullConfig() → applyDefaults()
         → applyInteractiveMode() → expandImports()
@@ -253,6 +254,7 @@ Vercel with Root Directory = `site`). Rules:
 ### Engine Resolution (v3)
 
 Engines resolve via the ladder, most explicit first:
+
 1. `--engine` CLI flag (deprecated aliases: `--_command`/`-_c`, `--tool`)
 2. `MDFLOW_ENGINE` environment variable
 3. Filename pattern: `task.claude.md` → `claude`
@@ -267,6 +269,7 @@ a document and printed, not executed.
 ### Frontmatter Keys
 
 **System keys** (consumed by md, not passed to command):
+
 - `_varname`: Template variables (e.g., `_name: "default"` → `{{ _name }}` in body → `--_name` CLI flag)
 - `_stdin`: Auto-injected template variable containing piped input
 - `_1`, `_2`, etc.: Auto-injected positional CLI args (e.g., `md task.md "foo"` → `{{ _1 }}` = "foo")
@@ -381,6 +384,7 @@ sessionEnd`. Adapters map them to engine-native names via `applyHooks()`.
 
 CONSENT BOUNDARIES (audit-hardened; regression-tested in
 hooks-integration.test.ts "consent boundaries"):
+
 - Passive surfaces NEVER execute hook code: explain, dry-run, the
   Workbench, and `md hooks list` discover events via
   `listHandledEventsStatic()` (text parse of the template's handlers map).
@@ -394,6 +398,7 @@ hooks-integration.test.ts "consent boundaries"):
 
 Codex translation (all facts verified empirically on codex-cli 0.144.1 —
 see the probe evidence rules below before changing any of this):
+
 - ONE inline override carries every event: `-c hooks={Event=[{hooks=[{type="command",command="'<bun>' '<file>'",timeout=60,…}]}]}`
   plus top-level `--dangerously-bypass-hook-trust` (without it codex
   SILENTLY skips unreviewed hooks). Event keys MUST be PascalCase —
@@ -424,6 +429,7 @@ see the probe evidence rules below before changing any of this):
 
 Claude translation (verified on Claude Code 2.1.207 —
 docs/claude-hooks-probe-2026-07.md):
+
 - Hooks ride in via `--settings <inline JSON>` (Claude's per-run settings
   channel): `{"hooks":{"Event":[{"matcher":"","hooks":[{"type":"command","command":"'<bun>' '<file>'","timeout":60}]}]}}`.
   Event keys PascalCase; `matcher:""` matches every occurrence.
@@ -525,17 +531,20 @@ chat.i.md           # Interactive with the DEFAULT engine — "i" is the
 > verify against the engine CLI's own `--help`/docs instead of this table.
 
 #### Claude Code (`claude`)
+
 | Type | Values |
 |------|--------|
 | **Aliases** | `sonnet`, `opus`, `haiku`, `opusplan` |
 | **Full names** | `claude-sonnet-4-5-20250929`, `claude-opus-4-5-20251101`, `claude-haiku-4-5-20251001`, `claude-opus-4-1-20250805` |
 
 Environment variables for alias control:
+
 - `ANTHROPIC_DEFAULT_SONNET_MODEL` - Override sonnet alias
 - `ANTHROPIC_DEFAULT_OPUS_MODEL` - Override opus alias
 - `ANTHROPIC_DEFAULT_HAIKU_MODEL` - Override haiku alias
 
 #### Codex CLI (`codex`)
+
 | Type | Values |
 |------|--------|
 | **Default** | `codex-mini-latest` (o4-mini optimized for CLI) |
@@ -545,6 +554,7 @@ Environment variables for alias control:
 Codex works with any OpenAI model. Example: `-m o3` or `-c model="o3"`
 
 #### Gemini CLI (`gemini`)
+
 | Type | Values |
 |------|--------|
 | **Default (free)** | `gemini-2.5-pro` |
@@ -553,7 +563,9 @@ Codex works with any OpenAI model. Example: `-m o3` or `-c model="o3"`
 To enable Gemini 3 Pro: run `/settings`, toggle "Preview features" to true.
 
 #### Copilot CLI (`copilot`)
+
 Explicit `--model` choices (from `copilot --help`):
+
 | Category | Models |
 |----------|--------|
 | **Claude** | `claude-sonnet-4.5`, `claude-haiku-4.5`, `claude-opus-4.5`, `claude-sonnet-4` |

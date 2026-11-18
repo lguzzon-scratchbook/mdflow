@@ -484,7 +484,7 @@ p: true                               # → -p (single char = short flag)
 A flow's hooks live in a TypeScript file **named after the flow** — that's
 the whole wiring:
 
-```
+```text
 review.codex.md          # the flow
 review.codex.hooks.ts    # its hooks — discovered and wired automatically
 ```
@@ -881,7 +881,7 @@ Files are loaded in order (later files override earlier):
 
 ### Example
 
-```
+```text
 my-agents/
 ├── .env                    # API_KEY=default
 ├── .env.local              # API_KEY=my-secret (gitignored)
@@ -897,7 +897,7 @@ Environment variables are available:
 
 ## CLI Options
 
-```
+```text
 Usage: md <file.md> [flags for the command]
        md                              # Open the Flow Workbench
        md <command> [options]
@@ -1061,7 +1061,7 @@ Each install records its source, requested ref (if supplied), registry-relative 
 
 Create a directory of agents and add it to PATH:
 
-```
+```text
 ~/agents/
 ├── review.claude.md     # Code review
 ├── commit.gemini.md     # Commit messages
@@ -1100,7 +1100,7 @@ md task.claude.md --raw | jq .
 
 Before execution, md shows a pre-flight dashboard with your context tree and token estimates:
 
-```
+```text
 ┌─ Pre-Flight ──────────────────────────────────────────────────┐
 │  📄 review.claude.md                                   1.2 KB │
 │  ├── 📁 @./src/**/*.ts                     (12 files) 24.5 KB │

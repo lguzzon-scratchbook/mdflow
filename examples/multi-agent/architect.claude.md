@@ -4,5 +4,6 @@
 model: opus
 print: true
 ---
+
 Design a TypeScript interface for: {{ _1 }}
 Consider scalability and type safety.

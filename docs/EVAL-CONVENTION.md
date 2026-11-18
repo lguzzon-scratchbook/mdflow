@@ -27,7 +27,7 @@ of this work; `md init` now copies real catalog suites.
 
 ## The headline loop (the shippable slice)
 
-```
+```text
 md create "review staged changes"
   → flows/review.md + flows/review.eval.ts   (draft suite)
 md eval list flows/review.md                 → Unverified (draft remains)
@@ -45,7 +45,7 @@ md eval list flows/review.md                 → Stale
 
 The existing command owns the whole lifecycle:
 
-```
+```text
 md eval <flow.md> [--plan] [--yes] [--filter <text>] [--json]     PAID (existing)
 md eval add <flow.md> [output|stdin|prompt|fixture|stochastic|nonzero]…   LOCAL WRITE
 md eval list [<flow.md>|<flows-dir>] [--json]                     FREE, read-only

@@ -28,11 +28,13 @@ The TOFU consent screen truncates the remote flow body at 500 chars, but approva
 ## Current state
 
 Relevant files:
+
 - `src/trust.ts` — `BODY_PREVIEW_LENGTH = 500` (line 23), `truncateBody` (~88-95), `promptForTrust` (~110-175): prints truncated body, then `confirm` execute + `select` remember-domain. No paging; `rememberDomain: true` is offered even when truncated.
 - `src/trust.test.ts` (check it exists with `ls src/trust*`; if missing, follow `src/remote.test.ts` structure instead — note which you used)
 - `src/cli-runner.ts` — calls `promptForTrust` in `handleTOFU` (~3311); read the call site to confirm the return shape it consumes (`{ approved, rememberDomain }` — do NOT change the shape).
 
 Excerpt (verified this session):
+
 ```ts
 // src/trust.ts:88-95
 function truncateBody(body: string, maxLength: number = BODY_PREVIEW_LENGTH): string {
@@ -57,10 +59,12 @@ Repo conventions: `console.error` for consent UI, `@inquirer/prompts` lazy impor
 ## Scope
 
 **In scope**:
+
 - `src/trust.ts` (preview rendering + remember gating)
 - `src/trust.test.ts` (or new test file if none exists — create `src/trust.test.ts` mirroring `src/remote.test.ts` structure)
 
 **Out of scope**:
+
 - `src/cli-runner.ts` `handleTOFU` logic — consume the same `{ approved, rememberDomain }` shape; do not touch
 - `known_hosts` file format or trust storage
 - URL allowlist policy (separate finding)
