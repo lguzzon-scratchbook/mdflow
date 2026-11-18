@@ -12,8 +12,8 @@
  *   grok     --system-prompt-override <replace> / --rules <append>
  *   omp      --system-prompt / --append-system-prompt (single value, segments joined)
  *
- * copilot, droid, opencode, cursor-agent, agy, and kimi have no supported
- * mechanism. That is a hard error, not a warning: a flow that declares its
+ * copilot, droid, opencode, cursor-agent, agy, kimi, and aivo have no
+ * supported mechanism. That is a hard error, not a warning: a flow that declares its
  * system prompt and runs without it is a different flow.
  */
 

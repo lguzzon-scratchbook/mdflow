@@ -32,6 +32,7 @@ export const SUPPORTED_COMMANDS = [
   "grok",
   "kimi",
   "omp",
+  "aivo",
 ] as const;
 
 export type SupportedCommand = string;

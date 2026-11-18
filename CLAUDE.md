@@ -301,7 +301,7 @@ flow can still re-enable one layer (`safe-mode: false`). Per engine:
 | pi | `--no-extensions --no-skills --no-prompt-templates --no-context-files --no-session` |
 | omp | `--no-extensions --no-skills --no-rules --no-session` (NOT hermetic: no `--no-prompt-templates`/`--no-context-files` equivalents in omp 18.3.2, ambient config.yml still loads; auth/sessions stay ambient in `~/.omp/agent`) |
 | grok | `--no-memory` (disables cross-session memory; MCP/plugins have no CLI kill-switch) |
-| droid / cursor-agent / agy / kimi | no controls exist — runs ambient; warns only on an explicit `_isolated: true` |
+| droid / cursor-agent / agy / kimi / aivo | no controls exist — runs ambient; warns only on an explicit `_isolated: true` |
 
 **Codex skill discovery + flow provenance (`src/adapters/codex-hooks-home.ts`,
 verified empirically on codex-cli 0.145.0 — 2026-07-24):** an isolated codex
@@ -358,7 +358,7 @@ the flow body is always the *user* prompt; `_system-prompt` (replace) and
 Translations: claude/pi/omp → `--system-prompt`/`--append-system-prompt` (omp joins append segments into one value); codex →
 `-c model_instructions_file=<temp file>` / `-c developer_instructions=…`;
 gemini → `GEMINI_SYSTEM_MD=<temp file>` env (replace only — append errors).
-Engines with no mechanism (copilot, droid, opencode, cursor-agent, agy) fail
+Engines with no mechanism (copilot, droid, opencode, cursor-agent, agy, kimi, aivo) fail
 the run — a silently dropped system prompt would be a different flow. Never
 add a translation from an unverified flag; check the engine's `--help` first.
 
