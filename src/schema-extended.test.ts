@@ -9,6 +9,10 @@ import { expect, test, describe } from "bun:test";
 import { validateFrontmatter, safeParseFrontmatter } from "./schema";
 import fc from "fast-check";
 
+// One escape point for deliberately-invalid fixtures and untyped reads.
+const fixProp = (v: unknown, prop?: string): unknown =>
+  (prop === undefined ? v : (v as Record<string, unknown>)[prop]);
+
 describe("frontmatter validation edge cases", () => {
   describe("_env key validation", () => {
     test("validates _env as object with string values", () => {
@@ -165,7 +169,7 @@ describe("frontmatter validation edge cases", () => {
     test("rejects invalid input type", () => {
       const result = safeParseFrontmatter({
         _inputs: {
-          _name: { type: "invalid" as any },
+          _name: { type: fixProp("invalid") },
         },
       });
       expect(result.success).toBe(false);
@@ -185,7 +189,7 @@ describe("frontmatter validation edge cases", () => {
     test("rejects text input defaults that are not strings", () => {
       const result = safeParseFrontmatter({
         _inputs: {
-          _name: { type: "text", default: 42 as any },
+          _name: { type: "text", default: fixProp(42) },
         },
       });
       expect(result.success).toBe(false);
@@ -203,10 +207,10 @@ describe("frontmatter validation edge cases", () => {
         verbose: false,
       };
       const result = validateFrontmatter(frontmatter);
-      expect((result as any).model).toBe("opus");
-      expect((result as any).print).toBe(true);
-      expect((result as any)["add-dir"]).toEqual(["./src", "./tests"]);
-      expect((result as any).verbose).toBe(false);
+      expect(fixProp(result, 'model')).toBe("opus");
+      expect(fixProp(result, 'print')).toBe(true);
+      expect(fixProp(result, 'add-dir')).toEqual(["./src", "./tests"]);
+      expect(fixProp(result, 'verbose')).toBe(false);
     });
 
     test("passes through positional mappings", () => {
@@ -216,9 +220,9 @@ describe("frontmatter validation edge cases", () => {
         $10: "extra",
       };
       const result = validateFrontmatter(frontmatter);
-      expect((result as any).$1).toBe("prompt");
-      expect((result as any).$2).toBe("context");
-      expect((result as any).$10).toBe("extra");
+      expect(fixProp(result, '$1')).toBe("prompt");
+      expect(fixProp(result, '$2')).toBe("context");
+      expect(fixProp(result, '$10')).toBe("extra");
     });
 
     test("passes through template variable definitions", () => {
@@ -228,9 +232,9 @@ describe("frontmatter validation edge cases", () => {
         _debug: true,
       };
       const result = validateFrontmatter(frontmatter);
-      expect((result as any)._name).toBe("default-name");
-      expect((result as any)._target).toBe("./src");
-      expect((result as any)._debug).toBe(true);
+      expect(fixProp(result, '_name')).toBe("default-name");
+      expect(fixProp(result, '_target')).toBe("./src");
+      expect(fixProp(result, '_debug')).toBe(true);
     });
   });
 
@@ -246,7 +250,7 @@ describe("frontmatter validation edge cases", () => {
         }
       };
       const result = validateFrontmatter(frontmatter);
-      expect((result as any).config.nested.deep.value).toBe("test");
+      expect(fixProp(fixProp(fixProp(fixProp(result, 'config'), 'nested'), 'deep'), 'value')).toBe("test");
     });
 
     test("handles arrays of objects", () => {
@@ -257,13 +261,13 @@ describe("frontmatter validation edge cases", () => {
         ]
       };
       const result = validateFrontmatter(frontmatter);
-      expect((result as any).tools).toHaveLength(2);
+      expect(fixProp(result, 'tools')).toHaveLength(2);
     });
 
     test("handles null values", () => {
       const frontmatter = { maybeNull: null };
       const result = validateFrontmatter(frontmatter);
-      expect((result as any).maybeNull).toBeNull();
+      expect(fixProp(result, 'maybeNull')).toBeNull();
     });
 
     test("handles undefined values", () => {
@@ -349,8 +353,8 @@ describe("YAML-specific edge cases", () => {
       enabled: true,
       disabled: false,
     });
-    expect((result as any).enabled).toBe(true);
-    expect((result as any).disabled).toBe(false);
+    expect(fixProp(result, 'enabled')).toBe(true);
+    expect(fixProp(result, 'disabled')).toBe(false);
   });
 
   test("handles YAML yes/no as booleans", () => {
@@ -369,10 +373,10 @@ describe("YAML-specific edge cases", () => {
       negVal: -10,
       sciVal: 1e10,
     });
-    expect((result as any).intVal).toBe(42);
-    expect((result as any).floatVal).toBe(3.14);
-    expect((result as any).negVal).toBe(-10);
-    expect((result as any).sciVal).toBe(1e10);
+    expect(fixProp(result, 'intVal')).toBe(42);
+    expect(fixProp(result, 'floatVal')).toBe(3.14);
+    expect(fixProp(result, 'negVal')).toBe(-10);
+    expect(fixProp(result, 'sciVal')).toBe(1e10);
   });
 
   test("handles YAML multiline strings", () => {
@@ -380,7 +384,7 @@ describe("YAML-specific edge cases", () => {
     const result = validateFrontmatter({
       description: multiline,
     });
-    expect((result as any).description).toBe(multiline);
+    expect(fixProp(result, 'description')).toBe(multiline);
   });
 
   test("handles special YAML values in _env", () => {
