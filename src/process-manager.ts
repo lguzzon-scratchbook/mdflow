@@ -259,7 +259,7 @@ export class ProcessManager {
 
       proc.kill("SIGTERM");
       return true;
-    } catch (err) {
+    } catch  {
       // Process may have already exited
       return false;
     }

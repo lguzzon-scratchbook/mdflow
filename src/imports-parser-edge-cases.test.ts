@@ -8,7 +8,6 @@
 import { describe, it, expect } from 'bun:test';
 import {
   parseImports,
-  findSafeRanges,
   isGlobPattern,
   parseLineRange,
   parseSymbolExtraction,

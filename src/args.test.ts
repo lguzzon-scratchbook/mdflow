@@ -1,7 +1,6 @@
 import { expect, test, describe } from "bun:test";
 import { parseFrontmatter } from "./parse";
 import { substituteTemplateVars, extractTemplateVars } from "./template";
-import { resolveCommand } from "./command";
 
 /**
  * Tests for the _inputs system:

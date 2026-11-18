@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
+import { describe, it, expect, beforeEach, mock } from "bun:test";
 import {
   loadHistory,
   getFrecencyScore,
@@ -16,7 +16,6 @@ import {
 } from "./history";
 import { join } from "path";
 import { homedir } from "os";
-import { rm } from "fs/promises";
 
 const HISTORY_PATH = join(homedir(), ".mdflow", "history.json");
 const VARIABLE_HISTORY_PATH = join(homedir(), ".mdflow", "variable-history.json");

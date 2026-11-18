@@ -105,7 +105,7 @@ export function applyIsolationDefaults(
   commandDefaults: CommandDefaults | undefined,
   isolationDefaults: CommandDefaults
 ): AgentFrontmatter {
-  const result = { ...(commandDefaults ?? {}) } as AgentFrontmatter;
+  const result = { ...commandDefaults } as AgentFrontmatter;
 
   const mergeLayer = (layer: AgentFrontmatter | CommandDefaults) => {
     for (const [key, value] of Object.entries(layer)) {

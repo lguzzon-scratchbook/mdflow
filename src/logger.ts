@@ -16,7 +16,7 @@ import { EventEmitter } from "node:events";
 import { homedir } from "os";
 import { mkdirSync, existsSync, readdirSync } from "fs";
 import { join, basename } from "path";
-import { isSensitiveKey, redactArgs } from "./secrets";
+import { redactArgs } from "./secrets";
 
 const LOG_BASE_DIR = join(homedir(), ".mdflow", "logs");
 

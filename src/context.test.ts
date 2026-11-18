@@ -16,10 +16,9 @@ import {
   createTestLogger,
   createConsoleLogger,
   mergeConfigs,
-  BUILTIN_DEFAULTS,
   type TestLogger,
 } from "./context";
-import type { RunContext, GlobalConfig } from "./types";
+import type { GlobalConfig } from "./types";
 import { expandImports } from "./imports";
 import { loadFullConfigFresh, getCommandDefaultsFromConfig, applyDefaults } from "./config";
 

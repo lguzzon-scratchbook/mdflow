@@ -7,8 +7,8 @@
  */
 
 import { tmpdir } from "node:os";
-import { closeSync, existsSync, mkdirSync, mkdtempSync, rmSync, openSync, readFileSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
+import { closeSync, existsSync, mkdtempSync, rmSync, openSync, readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
 import { getAdapter as getEngineAdapter } from "./adapters";
 import { buildArgs, extractPositionalMappings, resolveEngine, runCommand } from "./command";
 import { applyDefaults, getCommandDefaultsFromConfig, loadFullConfig, loadProjectConfig } from "./config";

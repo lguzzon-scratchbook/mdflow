@@ -39,7 +39,7 @@ import {
 import { extractSystemPromptSpec, applySystemPromptToFrontmatter } from "./system-prompt";
 import { renderFlowPrompt } from "./prompt-render";
 import { isRegistryPath } from "./project-root";
-import { substituteTemplateVars, extractTemplateVars } from "./template";
+import { extractTemplateVars } from "./template";
 import { isFormInputs, getFormInputDefaults } from "./form-inputs";
 import { isDomainTrusted, extractDomain, getKnownHostsPath } from "./trust";
 import { isRemoteUrl, fetchRemote, cleanupRemote } from "./remote";

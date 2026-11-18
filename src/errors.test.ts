@@ -29,7 +29,7 @@ import {
   EarlyExitRequest,
   getErrorMessage,
 } from "./errors";
-import { AgentRuntime, createRuntime } from "./runtime";
+import { createRuntime } from "./runtime";
 import { handleMaCommands, parseCliArgs } from "./cli";
 import { clearConfigCache } from "./config";
 

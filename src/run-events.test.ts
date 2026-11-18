@@ -140,7 +140,7 @@ _steps:
     const giant = join(binDir, "giant");
     await writeFile(
       giant,
-      `#!/bin/sh\nawk 'BEGIN { s=\"\"; while (length(s) < 131072) s = s \"GIANTCHUNK\"; print s \"GIANT_END_MARKER\" }'\nexit 0\n`
+      `#!/bin/sh\nawk 'BEGIN { s="\"; while (length(s) < 131072) s = s "GIANTCHUNK"; print s "GIANT_END_MARKER" }'\nexit 0\n`
     );
     await chmod(giant, 0o755);
     await writeFile(join(projectDir, "flows", "huge.giant.md"), "emit big");

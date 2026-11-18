@@ -417,7 +417,7 @@ function isUnifiedDiffLine(line: string, sawHunkHeader: boolean): boolean {
   if (line.startsWith("@@")) return true;
   if (line === "\\ No newline at end of file") return true;
   if (line.startsWith("Binary files ")) return true;
-  if (sawHunkHeader && /^[ +\-]/.test(line)) return true;
+  if (sawHunkHeader && /^[ +-]/.test(line)) return true;
   return false;
 }
 

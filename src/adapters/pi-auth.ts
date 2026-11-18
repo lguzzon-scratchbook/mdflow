@@ -105,7 +105,7 @@ export function mergeAuthSources(input: {
   realPi?: Record<string, AuthEntry>;
   codexCli?: Record<string, any>;
 }): Record<string, AuthEntry> {
-  const merged: Record<string, AuthEntry> = { ...(input.realPi ?? {}) };
+  const merged: Record<string, AuthEntry> = { ...input.realPi };
 
   for (const [provider, entry] of Object.entries(input.bridge ?? {})) {
     const current = merged[provider];

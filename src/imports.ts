@@ -1,11 +1,10 @@
 import { resolve, dirname, relative, basename, join } from "path";
 import { realpathSync, existsSync, statSync } from "fs";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
-import { homedir, platform, tmpdir } from "os";
+import { homedir } from "os";
 import { Glob } from "bun";
 // Lazy-load heavy dependencies for cold start optimization
 import { fetchTextResource } from "./fetch";
-import { MAX_INPUT_SIZE, FileSizeLimitError, exceedsLimit } from "./limits";
+import { FileSizeLimitError, exceedsLimit } from "./limits";
 import { estimateTokens, getContextLimit, countTokensAsync } from "./tokenizer";
 import { Semaphore, DEFAULT_CONCURRENCY_LIMIT } from "./concurrency";
 import { substituteTemplateVars } from "./template";
@@ -13,7 +12,7 @@ import { parseImports as parseImportsSafe, hasImportsInContent } from "./imports
 import type { ImportAction, ProviderImportAction } from "./imports-types";
 import { injectImports } from "./imports-injector";
 import { ImportError, getErrorMessage } from "./errors";
-import { escapeShellArg, sanitizePath, validateUrl } from "./security";
+import { sanitizePath, validateUrl } from "./security";
 import { runProvider, resolveContextProviderImport } from "./context-providers";
 
 // Lazy-load ignore package (only needed for glob imports)
@@ -27,82 +26,14 @@ async function getIgnore(): Promise<IgnoreFactory> {
   return _ignoreFactory;
 }
 
-/**
- * TTY Dashboard for monitoring parallel command execution
- * Handles rendering stacked spinners and live output previews
- */
-class ParallelDashboard {
-  private items: Map<string, { command: string; status: string; frame: number }> = new Map();
-  private interval: ReturnType<typeof setInterval> | null = null;
-  private isTTY: boolean;
-  private spinnerFrames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
-  private linesRendered = 0;
-
-  constructor() {
-    this.isTTY = process.stderr.isTTY ?? false;
-  }
-
-  start() {
-    if (!this.isTTY) return;
-    process.stderr.write('\x1B[?25l'); // Hide cursor
-    this.interval = setInterval(() => this.render(), 80);
-  }
-
-  stop() {
-    if (!this.isTTY) return;
-    if (this.interval) clearInterval(this.interval);
-    this.clear();
-    process.stderr.write('\x1B[?25h'); // Show cursor
-  }
-
-  register(id: string, command: string) {
-    // Truncate command visual if too long
-    const displayCmd = command.length > 40 ? command.slice(0, 37) + '...' : command;
-    this.items.set(id, { command: displayCmd, status: 'Starting...', frame: 0 });
-  }
-
-  update(id: string, chunk: string) {
-    const item = this.items.get(id);
-    if (item) {
-      // Clean newlines and take last 15 chars
-      const clean = chunk.replace(/[\r\n]/g, ' ').trim();
-      const preview = clean.length > 15 ? '...' + clean.slice(-15) : clean;
-      item.status = preview || item.status;
-    }
-  }
-
-  finish(id: string) {
-    this.items.delete(id);
-    this.render(); // Immediate update to remove line
-  }
-
-  private clear() {
-    if (this.linesRendered > 0) {
-      // Move up linesRendered times and clear screen down
-      process.stderr.write(`\x1B[${this.linesRendered}A`);
-      process.stderr.write('\x1B[0J');
-      this.linesRendered = 0;
-    }
-  }
-
-  private render() {
-    this.clear();
-
-    const lines: string[] = [];
-
-    for (const [_, item] of this.items) {
-      item.frame = (item.frame + 1) % this.spinnerFrames.length;
-      const spinner = this.spinnerFrames[item.frame];
-      // Format: ⠋ command : last output
-      lines.push(`${spinner} ${item.command} : \x1B[90m${item.status}\x1B[0m`);
-    }
-
-    if (lines.length > 0) {
-      process.stderr.write(lines.join('\n') + '\n');
-      this.linesRendered = lines.length;
-    }
-  }
-}
+// Command-inline resolvers live in imports-command.ts; re-exported here so
+// existing importers (prompt-render, runtime) keep working unchanged.
+export {
+  ParallelDashboard,
+  processCommandInline,
+  runImportProcess,
+  processExecutableCodeFence,
+} from "./imports-command";
 
 // Re-export pipeline components for direct access
 export { parseImports, hasImportsInContent, isGlobPattern, parseLineRange, parseSymbolExtraction } from "./imports-parser";
@@ -136,76 +67,55 @@ export { Semaphore, DEFAULT_CONCURRENCY_LIMIT } from "./concurrency";
  * without filesystem dependencies.
  */
 
-/** Track files being processed to detect circular imports */
-type ImportStack = Set<string>;
+export type {
+  ImportStack,
+  ResolvedImportsTracker,
+  ImportContext,
+} from "./imports-shared";
+import type {
+  ImportStack,
+  ResolvedImportsTracker,
+  ImportContext,
+} from "./imports-shared";
+export {
+  ImportBudget,
+  MAX_TOKENS,
+  WARN_TOKENS,
+  CHARS_PER_TOKEN,
+  MAX_CHARS,
+  DEFAULT_COMMAND_TIMEOUT_MS,
+  getCommandTimeout,
+  MAX_COMMAND_OUTPUT_SIZE,
+  createImportError,
+  ANSI_ESCAPE_REGEX,
+  isMarkdownFileCommand,
+  isBinaryFile,
+  isBinaryFileAsync,
+  expandTilde,
+  detectProjectRoot,
+  getProjectRoot,
+  canonicalCandidate,
+  containedImportPath,
+  resolveImportPath,
+} from "./imports-shared";
+import {
+  ImportBudget,
+  createImportError,
+  isBinaryFile,
+  isBinaryFileAsync,
+  expandTilde,
+  detectProjectRoot,
+  getProjectRoot,
+  canonicalCandidate,
+  containedImportPath,
+  resolveImportPath,
+} from "./imports-shared";
+import {
+  ParallelDashboard,
+  processCommandInline,
+  processExecutableCodeFence,
+} from "./imports-command";
 
-/** Track resolved import paths for introspection */
-export type ResolvedImportsTracker = string[];
-
-/**
- * Import context for passing runtime dependencies
- * Used to inject environment variables and track resolved imports
- */
-export interface ImportContext {
-  /** Environment variables (defaults to process.env) */
-  env?: Record<string, string | undefined>;
-  /** Shared across recursive content expansion, independent per top-level render. */
-  budget?: ImportBudget;
-  /** Caller URL policy; a flow cannot relax it via child _env. */
-  policyEnv?: Record<string, string | undefined>;
-  /** Track resolved imports for ExecutionPlan */
-  resolvedImports?: ResolvedImportsTracker;
-  /**
-   * Working directory for command execution (!`cmd` inlines).
-   * When set, commands run in this directory instead of the agent file's directory.
-   * This allows agents in ~/.mdflow to execute commands in the user's invocation directory.
-   */
-  invocationCwd?: string;
-  /**
-   * Template variables for substitution in inline commands (!`cmd`).
-   * When provided, {{ _varname }} patterns in command strings are substituted
-   * before execution, allowing dynamic command construction.
-   */
-  templateVars?: Record<string, string>;
-  /**
-   * Dry-run mode: when true, commands are not executed.
-   * Instead, a placeholder message is returned showing what would have been executed.
-   */
-  dryRun?: boolean;
-  /**
-   * Internal cache of resolved project root for path traversal checks.
-   * This keeps path policy stable across recursive import expansion.
-   */
-  _projectRoot?: string;
-  /**
-   * Optional token budget for first-class context providers (e.g. @git:diff, @tree).
-   * When set, provider output falls back to summary mode/truncation to stay in budget.
-   */
-  _context_budget_tokens?: number;
-}
-
-/** Limits fan-out as well as individual reads. Charge before descending or
- * allocating another batch; repeated imports consume the same allowance. */
-export class ImportBudget {
-  private remainingActions = 1024;
-  private remainingBytes = MAX_INPUT_SIZE;
-  actions(n: number, depth: number): void {
-    this.remainingActions -= n;
-    if (depth > 64 || this.remainingActions < 0) throw new ImportError("Import graph exceeds 64 levels or 1024 actions", { errorCode: "INPUT_LIMIT_EXCEEDED" });
-  }
-  bytes(n: number): void {
-    this.remainingBytes -= n;
-    if (this.remainingBytes < 0) throw new ImportError("Cumulative imported data exceeds 10MB limit", { errorCode: "INPUT_LIMIT_EXCEEDED" });
-  }
-}
-
-const PROJECT_ROOT_MARKERS = [
-  ".git",
-  "package.json",
-  "mdflow.config.yaml",
-  ".mdflow.yaml",
-  ".mdflow.json",
-];
 
 const URL_ALLOWLIST_ENV_KEYS = [
   "MDFLOW_IMPORT_URL_ALLOWLIST",
@@ -216,215 +126,6 @@ const URL_BLOCKLIST_ENV_KEYS = [
   "MDFLOW_IMPORT_URL_BLOCKLIST",
   "MDFLOW_URL_BLOCKLIST",
 ] as const;
-
-/**
- * File extensions that are known to be binary
- * These are checked first before content inspection
- */
-const BINARY_EXTENSIONS = new Set([
-  // Images
-  ".png", ".jpg", ".jpeg", ".gif", ".ico", ".webp", ".bmp", ".svg", ".tiff", ".tif",
-  // Executables and libraries
-  ".exe", ".dll", ".so", ".dylib", ".bin",
-  // Archives
-  ".zip", ".tar", ".gz", ".7z", ".rar", ".bz2", ".xz",
-  // Documents
-  ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx",
-  // Databases
-  ".sqlite", ".db", ".sqlite3",
-  // Data files
-  ".dat", ".data",
-  // System files
-  ".DS_Store",
-  // Other binary formats
-  ".wasm", ".pyc", ".class", ".o", ".a", ".lib",
-]);
-
-/** Size of buffer to check for binary content (8KB) */
-const BINARY_CHECK_SIZE = 8192;
-
-/**
- * Check if a file is binary based on extension or content
- *
- * @param filePath - Path to the file
- * @param content - Optional buffer to check (if already read)
- * @returns true if file appears to be binary
- */
-export function isBinaryFile(filePath: string, content?: Buffer): boolean {
-  // Check extension first (fast path)
-  const ext = filePath.toLowerCase().match(/\.[^./\\]+$/)?.[0] || "";
-  if (BINARY_EXTENSIONS.has(ext)) {
-    return true;
-  }
-
-  // Check for files without extensions that are typically binary
-  const base = filePath.split(/[/\\]/).pop() || "";
-  if (base === ".DS_Store") {
-    return true;
-  }
-
-  // If content provided, check for null bytes
-  if (content) {
-    const checkSize = Math.min(content.length, BINARY_CHECK_SIZE);
-    for (let i = 0; i < checkSize; i++) {
-      if (content[i] === 0) {
-        return true;
-      }
-    }
-  }
-
-  return false;
-}
-
-/**
- * Check if a file is binary by reading its first bytes
- *
- * @param filePath - Path to the file
- * @returns true if file appears to be binary
- */
-export async function isBinaryFileAsync(filePath: string): Promise<boolean> {
-  // Check extension first (fast path)
-  if (isBinaryFile(filePath)) {
-    return true;
-  }
-
-  // Read first 8KB and check for null bytes
-  let bytes: Uint8Array;
-  try {
-    const file = Bun.file(filePath);
-    const buffer = await file.slice(0, BINARY_CHECK_SIZE).arrayBuffer();
-    bytes = new Uint8Array(buffer);
-  } catch (err) {
-    throw createImportError(
-      `Failed to inspect imported file "${filePath}" for binary content.`,
-      "IMPORT_FILE_READ_FAILED",
-      {
-        filePath,
-        suggestion: "Verify the file exists and is readable before importing it.",
-      },
-      err
-    );
-  }
-
-  for (let i = 0; i < bytes.length; i++) {
-    if (bytes[i] === 0) {
-      return true;
-    }
-  }
-
-  return false;
-}
-
-/** Maximum token count before error (approx 4 chars per token) */
-export const MAX_TOKENS = 100_000;
-/** Warning threshold for high token count */
-export const WARN_TOKENS = 50_000;
-export const CHARS_PER_TOKEN = 4;
-const MAX_CHARS = MAX_TOKENS * CHARS_PER_TOKEN;
-
-import { getProcessManager } from "./process-manager";
-
-/** Default command execution timeout in milliseconds (30 seconds) */
-const DEFAULT_COMMAND_TIMEOUT_MS = 30_000;
-
-/**
- * Get command timeout from ProcessManager or use default
- */
-function getCommandTimeout(): number {
-  try {
-    return getProcessManager().timeouts.commandTimeout;
-  } catch {
-    return DEFAULT_COMMAND_TIMEOUT_MS;
-  }
-}
-
-/** Maximum command output size in characters (~25k tokens) */
-const MAX_COMMAND_OUTPUT_SIZE = 100_000;
-
-function createImportError(
-  message: string,
-  errorCode: "IMPORT_FILE_NOT_FOUND" | "IMPORT_FILE_READ_FAILED" | "IMPORT_BINARY_FILE" | "IMPORT_CIRCULAR_DEPENDENCY" | "IMPORT_COMMAND_FAILED" | "IMPORT_URL_FETCH_FAILED",
-  context: Record<string, string | number | boolean | null | undefined>,
-  cause?: unknown
-): ImportError {
-  return new ImportError(message, {
-    errorCode,
-    context,
-    cause,
-  });
-}
-
-/** Regex to strip ANSI escape codes from command output */
-// eslint-disable-next-line no-control-regex
-const ANSI_ESCAPE_REGEX = /[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g;
-
-/**
- * Expand a path that may start with ~ to use home directory
- */
-function expandTilde(filePath: string): string {
-  if (filePath.startsWith("~/") || filePath === "~") {
-    return filePath.replace("~", homedir());
-  }
-  return filePath;
-}
-
-/**
- * Discover a project root for import path boundary checks.
- * Preference order:
- * 1. Nearest directory containing common project markers (.git/package.json/etc.)
- * 2. Starting directory when no marker exists.
- */
-function detectProjectRoot(startDir: string): string {
-  let current = resolve(startDir);
-  let previous = "";
-
-  while (current !== previous) {
-    for (const marker of PROJECT_ROOT_MARKERS) {
-      if (existsSync(join(current, marker))) {
-        return current;
-      }
-    }
-
-    previous = current;
-    current = dirname(current);
-  }
-
-  return resolve(startDir);
-}
-
-function getProjectRoot(currentFileDir: string, importCtx?: ImportContext): string {
-  if (importCtx?._projectRoot) {
-    return importCtx._projectRoot;
-  }
-
-  const discovered = importCtx?.invocationCwd
-    ? resolve(importCtx.invocationCwd)
-    : detectProjectRoot(currentFileDir);
-
-  if (importCtx) {
-    importCtx._projectRoot = discovered;
-  }
-
-  return discovered;
-}
-
-/**
- * Resolve an import path relative to the current file's directory
- */
-function canonicalCandidate(path: string): string {
-  try { return realpathSync(path); } catch (err) {
-    if ((err as NodeJS.ErrnoException).code !== "ENOENT" || dirname(path) === path) throw err;
-    return join(canonicalCandidate(dirname(path)), basename(path));
-  }
-}
-
-function containedImportPath(root: string, path: string): string {
-  return sanitizePath(realpathSync(root), canonicalCandidate(path));
-}
-
-function resolveImportPath(importPath: string, currentFileDir: string, projectRoot: string): string {
-  return containedImportPath(projectRoot, resolve(currentFileDir, expandTilde(importPath)));
-}
 
 function parseListFromEnv(value: string | undefined): string[] {
   if (!value) return [];
@@ -1415,137 +1116,6 @@ async function processFileImport(
 
   // Nested @ imports may supply more context, never new executable actions.
   return expandContentImports(content, dirname(resolvedPath), newStack, verbose, importCtx);
-}
-
-/**
- * Pattern to detect markdown file paths that should be auto-run with `md`
- * Matches: foo.md, ./foo.md, ~/foo.md, /path/to/foo.md, foo.claude.md, etc.
- * The command must start with a path-like pattern and end with .md
- */
-const MD_FILE_COMMAND_PATTERN = /^(~?\.?\.?\/)?[^\s]+\.md(\s|$)/;
-
-/**
- * Check if a command looks like a markdown file that should be run with `mdflow`
- */
-export function isMarkdownFileCommand(command: string): boolean {
-  return MD_FILE_COMMAND_PATTERN.test(command.trim());
-}
-
-/**
- * Process a single command inline with comprehensive safety measures:
- * - Dry-run mode support
- * - Cross-platform shell support (Windows/Unix)
- * - Execution timeout (30s default)
- * - Binary output detection
- * - ANSI escape code stripping
- * - LiquidJS tag sanitization
- * - Output size limiting
- * - Detailed error reporting
- */
-async function processCommandInline(
-  command: string,
-  currentFileDir: string,
-  verbose: boolean,
-  importCtx?: ImportContext,
-  onProgress?: (chunk: string) => void,
-  useDashboard: boolean = false
-): Promise<string> {
-  const isWin = platform() === "win32";
-
-  // Already rendered exactly once from authored source.
-  const processedCommand = command;
-
-  // Auto-prefix markdown files with `mdflow` to run them as agents
-  let actualCommand = processedCommand;
-  if (isMarkdownFileCommand(processedCommand)) {
-    const trimmed = processedCommand.trim();
-    const firstSpace = trimmed.search(/\s/);
-    const markdownPath = firstSpace === -1 ? trimmed : trimmed.slice(0, firstSpace);
-    const trailingArgs = firstSpace === -1 ? "" : trimmed.slice(firstSpace).trimStart();
-    const escapedMarkdownPath = escapeShellArg(markdownPath, isWin ? "win32" : "posix");
-    actualCommand = `mdflow ${escapedMarkdownPath}${trailingArgs ? ` ${trailingArgs}` : ""}`;
-    console.error(`[imports] Auto-running .md file with mdflow: ${actualCommand}`);
-  }
-
-  // Dry-run safety: report the command without claiming or attempting execution.
-  if (importCtx?.dryRun) {
-    console.error(`[imports] Dry-run: Skipping execution of '${actualCommand}'`);
-    return `[Dry Run: Command "${actualCommand}" not executed]`;
-  }
-
-  // Always log command execution unless dashboard is active (it shows progress)
-  if (!useDashboard) {
-    console.error(`[imports] Executing: ${processedCommand}`);
-  }
-
-  // Use importCtx.env if provided, otherwise fall back to process.env
-  const env = importCtx?.env ?? process.env;
-
-  // Use invocationCwd for command execution if provided (allows agents in ~/.mdflow
-  // to run commands in the user's current directory), fall back to file directory
-  const commandCwd = importCtx?.invocationCwd ?? currentFileDir;
-
-  // Improvement #5: Cross-platform shell support
-  const shell = isWin ? "cmd.exe" : "sh";
-  const shellArgs = isWin ? ["/d", "/s", "/c", actualCommand] : ["-c", actualCommand];
-
-  return runImportProcess([shell, ...shellArgs], commandCwd, env, "Inline command", onProgress);
-}
-
-/** Both executable syntaxes own a process group, drain both pipes, and keep
- * the deadline live through child exit (even after the pipes close). */
-async function runImportProcess(argv: string[], cwd: string, env: Record<string, string | undefined>, label: string, progress?: (text: string) => void): Promise<string> {
-  const pm = getProcessManager();
-  pm.signal.throwIfAborted();
-  const proc = Bun.spawn(argv, { cwd, env, stdin: "ignore", stdout: "pipe", stderr: "pipe", detached: process.platform !== "win32" });
-  pm.register(proc, label);
-  const kill = () => {
-    try { if (process.platform !== "win32") { process.kill(-proc.pid, "SIGKILL"); return; } } catch {}
-    try { proc.kill("SIGKILL"); } catch {}
-  };
-  let bytes = 0;
-  const collect = async (stream: ReadableStream<Uint8Array>, update?: (text: string) => void) => {
-    const chunks: Uint8Array[] = [];
-    for await (const chunk of stream) {
-      bytes += chunk.byteLength;
-      if (exceedsLimit(bytes)) throw new Error("combined output exceeds 10MB limit");
-      chunks.push(chunk);
-      update?.(new TextDecoder().decode(chunk));
-    }
-    const buffer = Buffer.concat(chunks);
-    if (buffer.subarray(0, 1024).includes(0)) throw new Error("returned binary data");
-    return buffer.toString("utf8").trim().replace(ANSI_ESCAPE_REGEX, "");
-  };
-  const ms = getCommandTimeout();
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  try {
-    const [stdout, stderr, code] = await Promise.race([
-      Promise.all([collect(proc.stdout, progress), collect(proc.stderr), proc.exited]),
-      new Promise<never>((_, reject) => { timer = setTimeout(() => reject(new Error(`timed out after ${ms}ms`)), ms); }),
-    ]);
-    if (code !== 0) throw new Error(`Exit ${code}: ${(stderr || stdout || "No output").slice(0, 4000)}`);
-    const output = (label === "Code fence" ? [stdout, stderr] : [stderr, stdout]).filter(Boolean).join("\n");
-    return output.length <= MAX_COMMAND_OUTPUT_SIZE ? output : output.slice(0, MAX_COMMAND_OUTPUT_SIZE) +
-      `\n... [Output truncated: ${(output.length - MAX_COMMAND_OUTPUT_SIZE).toLocaleString()} characters removed]`;
-  } catch (cause) {
-    kill();
-    await proc.exited;
-    throw createImportError(`${label} failed: ${getErrorMessage(cause)}`, "IMPORT_COMMAND_FAILED", { cwd }, cause);
-  } finally { clearTimeout(timer); pm.unregister(proc); }
-}
-
-async function processExecutableCodeFence(
-  action: { shebang: string; language: string; code: string }, dir: string, verbose: boolean, ctx?: ImportContext,
-): Promise<string> {
-  if (ctx?.dryRun) return "[Dry Run: Code fence not executed]";
-  const temp = await mkdtemp(join(tmpdir(), "mdflow-fence-"));
-  try {
-    const ext = /^[a-zA-Z0-9]+$/.test(action.language) ? action.language : "script";
-    const path = join(temp, "script." + ext);
-    await writeFile(path, action.shebang + "\n" + action.code, { flag: "wx", mode: 0o700 });
-    console.error(`[imports] Executing code fence (${ext}): ${action.shebang}`);
-    return await runImportProcess([path], ctx?.invocationCwd ?? dir, ctx?.env ?? process.env, "Code fence");
-  } finally { await rm(temp, { recursive: true, force: true }); }
 }
 
 export type ExecutableImport = Extract<ImportAction, { type: "command" | "executable_code_fence" }>;

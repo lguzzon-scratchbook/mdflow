@@ -336,13 +336,13 @@ describe('parseImports', () => {
     });
 
     it('handles imports on multiple lines', () => {
-      const content = "Line 1: @./first.md\nLine 2: !\`date\`\nLine 3: @https://example.com";
+      const content = "Line 1: @./first.md\nLine 2: !`date`\nLine 3: @https://example.com";
       const actions = parseImports(content);
       expect(actions).toHaveLength(3);
     });
 
     it('handles complex markdown with imports', () => {
-      const content = "# Title\n\nRead the config: @./config.yaml\n\n## Commands\n\nOutput: !\`ls -la\`\n\n## External Docs\n\nSee @https://docs.example.com for more info.\n";
+      const content = "# Title\n\nRead the config: @./config.yaml\n\n## Commands\n\nOutput: !`ls -la`\n\n## External Docs\n\nSee @https://docs.example.com for more info.\n";
       const actions = parseImports(content);
       expect(actions).toHaveLength(3);
     });

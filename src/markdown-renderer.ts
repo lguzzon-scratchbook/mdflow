@@ -7,7 +7,6 @@
  */
 
 import { Marked } from "marked";
-// @ts-expect-error no types available
 import { markedTerminal } from "marked-terminal";
 
 // Lazily create marked instance to avoid initialization errors during module load

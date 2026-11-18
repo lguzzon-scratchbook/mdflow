@@ -320,7 +320,7 @@ export class AgentRuntime {
   ): Promise<ProcessedTemplate> {
     const { frontmatter, expandedBody } = context;
     let remainingArgs = [...(options.passthroughArgs || [])];
-    let templateVars: Record<string, string> = { ...(options.templateVars || {}) };
+    let templateVars: Record<string, string> = { ...options.templateVars };
 
     // Inject stdin as _stdin template variable
     if (options.stdinContent) {

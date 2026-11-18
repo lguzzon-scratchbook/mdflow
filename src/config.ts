@@ -633,7 +633,7 @@ export function mergeConfigs(
 		result.commands = result.commands ? { ...result.commands } : {};
 		for (const [cmd, defaults] of Object.entries(override.commands)) {
 			result.commands[cmd] = {
-				...(result.commands[cmd] || {}),
+				...result.commands[cmd],
 				...defaults,
 			};
 		}

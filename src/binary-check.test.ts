@@ -1,4 +1,4 @@
-import { expect, test, describe, mock, spyOn, beforeEach, afterEach } from "bun:test";
+import { expect, test, describe, spyOn, beforeEach, afterEach } from "bun:test";
 import { runCommand, type RunContext } from "./command";
 
 describe("runCommand binary check", () => {
