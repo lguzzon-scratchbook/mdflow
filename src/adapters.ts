@@ -141,60 +141,26 @@ export const opencodePortableAdapter = createPortableAdapter("opencode", {
   "max-tokens": "max-tokens",
 });
 
-// pi supports --model (with optional ":<thinking>" suffix); no temperature or
-// max-tokens flags — those canonical keys are dropped, not passed through.
-export const piPortableAdapter = createPortableAdapter(
-  "pi",
-  { model: "model", temperature: "temperature", "max-tokens": "max-tokens" },
-  { model: true, temperature: false, maxTokens: false }
-);
+// Model-only engines: --model is supported; temperature and max-tokens are
+// unexposed or unconfirmed upstream, so those keys are dropped, not passed.
+// Per-engine notes: pi (optional ":<thinking>" suffix), agy (unconfirmed),
+// grok/kimi/omp (absent from --help), cursor-agent (model only),
+// aivo (consumed by aivo itself as -m/--model).
+function modelOnlyPortableAdapter(name: string): Adapter {
+  return createPortableAdapter(
+    name,
+    { model: "model", temperature: "temperature", "max-tokens": "max-tokens" },
+    { model: true, temperature: false, maxTokens: false }
+  );
+}
 
-// cursor-agent supports --model only.
-export const cursorAgentPortableAdapter = createPortableAdapter(
-  "cursor-agent",
-  { model: "model", temperature: "temperature", "max-tokens": "max-tokens" },
-  { model: true, temperature: false, maxTokens: false }
-);
-
-// agy supports --model (e.g. gemini-3.1-pro, claude-opus); temperature and
-// max-tokens are unconfirmed upstream, so they are dropped rather than passed.
-export const agyPortableAdapter = createPortableAdapter(
-  "agy",
-  { model: "model", temperature: "temperature", "max-tokens": "max-tokens" },
-  { model: true, temperature: false, maxTokens: false }
-);
-
-// grok supports --model (e.g. grok-code, grok-4); temperature and max-tokens
-// are not exposed in grok --help, so they are dropped rather than guessed.
-export const grokPortableAdapter = createPortableAdapter(
-  "grok",
-  { model: "model", temperature: "temperature", "max-tokens": "max-tokens" },
-  { model: true, temperature: false, maxTokens: false }
-);
-
-// kimi supports --model (alias resolved from config.toml); temperature and
-// max-tokens are not exposed in kimi --help, so they are dropped.
-export const kimiPortableAdapter = createPortableAdapter(
-  "kimi",
-  { model: "model", temperature: "temperature", "max-tokens": "max-tokens" },
-  { model: true, temperature: false, maxTokens: false }
-);
-
-// omp supports --model (fuzzy match: "opus", "gpt-5.2", "openai/gpt-5.2");
-// temperature and max-tokens are not exposed in omp --help, so dropped.
-export const ompPortableAdapter = createPortableAdapter(
-  "omp",
-  { model: "model", temperature: "temperature", "max-tokens": "max-tokens" },
-  { model: true, temperature: false, maxTokens: false }
-);
-
-// aivo exposes --model (consumed by aivo itself: -m/--model) but no
-// temperature or max-tokens flags (per `aivo run --help`), so dropped.
-export const aivoPortableAdapter = createPortableAdapter(
-  "aivo",
-  { model: "model", temperature: "temperature", "max-tokens": "max-tokens" },
-  { model: true, temperature: false, maxTokens: false }
-);
+export const piPortableAdapter = modelOnlyPortableAdapter("pi");
+export const cursorAgentPortableAdapter = modelOnlyPortableAdapter("cursor-agent");
+export const agyPortableAdapter = modelOnlyPortableAdapter("agy");
+export const grokPortableAdapter = modelOnlyPortableAdapter("grok");
+export const kimiPortableAdapter = modelOnlyPortableAdapter("kimi");
+export const ompPortableAdapter = modelOnlyPortableAdapter("omp");
+export const aivoPortableAdapter = modelOnlyPortableAdapter("aivo");
 
 const PORTABLE_ADAPTERS: Record<string, Adapter> = {
   claude: claudePortableAdapter,
