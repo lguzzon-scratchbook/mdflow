@@ -7,10 +7,10 @@
 
 import type { AgentFrontmatter, Adapter } from "./types";
 import { basename, resolve } from "path";
-import { teeToStdoutAndCollect, teeToStderrAndCollect, teeToStdoutWithMarkdownAndCollect } from "./stream";
+import { teeToStderrAndCollect, teeToStdoutWithMarkdownAndCollect } from "./stream";
 import { stopSpinner, isSpinnerRunning } from "./spinner";
 import { getProcessManager } from "./process-manager";
-import { createStreamingRenderer, type StreamingMarkdownRenderer } from "./markdown-renderer";
+import { createStreamingRenderer } from "./markdown-renderer";
 import { getRegisteredAdapters, getPortableAdapter, getAdapter as getEngineAdapter, hasAdapter } from "./adapters";
 import { CommandError } from "./errors";
 import { escapeShellArg as escapeShellArgShared } from "./security";

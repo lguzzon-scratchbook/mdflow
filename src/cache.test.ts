@@ -1,5 +1,5 @@
 import { expect, test, describe, beforeEach, afterEach } from "bun:test";
-import { rm, mkdir, readFile, writeFile, stat } from "fs/promises";
+import { rm, mkdir, writeFile, stat } from "fs/promises";
 import { join } from "path";
 import { tmpdir } from "os";
 import {

@@ -6,7 +6,7 @@
  * HTTP conditional request support (ETag/Last-Modified).
  */
 
-import { mkdir, stat, readFile, writeFile, rm, readdir } from "fs/promises";
+import { mkdir, stat, readFile, rm, readdir } from "fs/promises";
 import { join } from "path";
 import { homedir } from "os";
 import { createHash } from "crypto";
@@ -199,7 +199,7 @@ export async function getCachedContent(
     }
 
     return { hit: true, content, metadata };
-  } catch (error) {
+  } catch  {
     // Cache miss - file doesn't exist or is corrupted
     return { hit: false };
   }

@@ -6,7 +6,6 @@ import {
   readdirSync,
   readlinkSync,
   realpathSync,
-  symlinkSync,
   writeFileSync,
 } from "node:fs";
 import { basename, dirname, isAbsolute, join, relative, resolve, sep } from "node:path";

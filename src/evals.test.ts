@@ -4,7 +4,7 @@
  */
 
 import { expect, test, describe, beforeEach, afterEach } from "bun:test";
-import { mkdtempSync, rmSync, existsSync, readFileSync, writeFileSync, mkdirSync } from "fs";
+import { mkdtempSync, rmSync, existsSync, writeFileSync, mkdirSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
 import {

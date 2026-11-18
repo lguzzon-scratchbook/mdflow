@@ -15,7 +15,6 @@ import { tmpdir } from "os";
 import {
   AgentRuntime,
   createRuntime,
-  type ExecutionPlan,
 } from "./runtime";
 import { clearConfigCache } from "./config";
 import { DEFAULT_ENGINE } from "./command";

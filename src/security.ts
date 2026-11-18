@@ -186,7 +186,7 @@ export function escapeShellArg(arg: string, mode: ShellEscapeMode = "posix"): st
   }
 
   if (arg.length === 0) return "''";
-  return `'${arg.replace(/'/g, `'\"'\"'`)}'`;
+  return `'${arg.replace(/'/g, `'"'"'`)}'`;
 }
 
 export function detectSensitiveEnvVars(

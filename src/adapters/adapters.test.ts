@@ -2,14 +2,13 @@
  * Tests for the Tool Adapter pattern
  */
 
-import { expect, test, describe, beforeEach } from "bun:test";
+import { expect, test, describe } from "bun:test";
 import {
   getAdapter,
   hasAdapter,
   registerAdapter,
   getRegisteredAdapters,
   buildBuiltinDefaults,
-  clearAdapterRegistry,
   getDefaultAdapter,
 } from "./index";
 import { claudeAdapter } from "./claude";

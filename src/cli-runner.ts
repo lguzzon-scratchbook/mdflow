@@ -37,7 +37,6 @@ import {
 	runCommand,
 	extractPositionalMappings,
 	extractEnvVars,
-	killCurrentChildProcess,
 	hasInteractiveMarker,
 	levenshteinDistance,
 } from "./command";

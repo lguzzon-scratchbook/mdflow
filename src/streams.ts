@@ -7,7 +7,7 @@
 
 import { Readable, Writable } from "stream";
 import type { IOStreams } from "./types";
-import { MAX_INPUT_SIZE, StdinSizeLimitError, exceedsLimit } from "./limits";
+import { StdinSizeLimitError, exceedsLimit } from "./limits";
 
 /**
  * Create the default IO streams using process.stdin/stdout/stderr

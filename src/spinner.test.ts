@@ -1,4 +1,4 @@
-import { describe, it, expect, mock, beforeEach, afterEach } from "bun:test";
+import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { startSpinner, stopSpinner, isSpinnerRunning } from "./spinner";
 
 describe("spinner", () => {
