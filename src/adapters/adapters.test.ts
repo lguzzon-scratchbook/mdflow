@@ -24,6 +24,7 @@ import { agyAdapter } from "./agy";
 import { grokAdapter } from "./grok";
 import { kimiAdapter } from "./kimi";
 import { ompAdapter } from "./omp";
+import { aivoAdapter } from "./aivo";
 import type { ToolAdapter, AgentFrontmatter } from "../types";
 
 describe("Tool Adapter Registry", () => {
@@ -473,5 +474,42 @@ describe("omp Adapter (oh-my-pi, omp 18.3.2)", () => {
 
   test("has no auth bridge (ambient ~/.omp/agent)", () => {
     expect(ompAdapter.prepareEnv).toBeUndefined();
+  });
+});
+
+describe("aivo Adapter (standalone code -p, router via _subcommand)", () => {
+  test("is registered", () => {
+    expect(hasAdapter("aivo")).toBe(true);
+  });
+
+  test("has correct name", () => {
+    expect(aivoAdapter.name).toBe("aivo");
+  });
+
+  test("getDefaults is standalone one-shot (code -p)", () => {
+    expect(aivoAdapter.getDefaults()).toEqual({ _subcommand: ["code"], p: true });
+  });
+
+  test("applyInteractiveMode drops -p, keeps code subcommand (TUI)", () => {
+    const result = aivoAdapter.applyInteractiveMode({ _subcommand: ["code"], p: true, model: "opus" });
+    expect(result.p).toBeUndefined();
+    expect(result._subcommand).toEqual(["code"]);
+    expect(result.model).toBe("opus");
+  });
+
+  test("has no isolation controls (ambient, like kimi)", () => {
+    expect(aivoAdapter.getIsolationDefaults).toBeUndefined();
+  });
+
+  test("has no system-prompt mechanism", () => {
+    expect(aivoAdapter.applySystemPrompt).toBeUndefined();
+  });
+
+  test("has no hooks mechanism", () => {
+    expect(aivoAdapter.applyHooks).toBeUndefined();
+  });
+
+  test("has no auth bridge (ambient `aivo keys`)", () => {
+    expect(aivoAdapter.prepareEnv).toBeUndefined();
   });
 });

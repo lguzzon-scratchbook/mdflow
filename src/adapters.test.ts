@@ -215,4 +215,16 @@ describe("portable adapter translation for v3 engines", () => {
     expect(args).not.toContain("--temperature");
     expect(args).not.toContain("--max-tokens");
   });
+
+  test("aivo keeps --model, drops unsupported canonical keys", () => {
+    const args = buildArgs(
+      { model: "sonnet", temperature: 0.5, "max-tokens": 1024 },
+      new Set(),
+      "aivo"
+    );
+
+    expectFlagValue(args, "--model", "sonnet");
+    expect(args).not.toContain("--temperature");
+    expect(args).not.toContain("--max-tokens");
+  });
 });

@@ -243,6 +243,7 @@ const PREFERRED_ENGINE_ORDER = [
 	"grok",
 	"kimi",
 	"omp",
+	"aivo",
 ];
 
 /** Registered engines in composer order: the default first, unknowns last. */
@@ -312,6 +313,11 @@ const EFFORT_SUPPORT: Record<string, EffortSupport> = {
 	omp: {
 		levels: ["off", "minimal", "low", "medium", "high", "xhigh", "max", "auto"],
 		frontmatter: (effort) => ({ thinking: effort }),
+	},
+	// aivo --effort routes to the inner tool (codex-only; claude-inner warns).
+	aivo: {
+		levels: ["minimal", "low", "medium", "high", "xhigh"],
+		frontmatter: (effort) => ({ effort }),
 	},
 };
 

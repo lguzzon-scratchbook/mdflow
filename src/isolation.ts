@@ -20,8 +20,9 @@
  *             --no-context-files --no-session
  *   omp       --no-extensions --no-skills --no-rules --no-session (partial, NOT hermetic: no --no-prompt-templates/--no-context-files in omp 18.3.2)
  *   grok      --no-memory
+ *   aivo      (no flags — ambient: inner-tool context + router env stay ambient)
  *
- * droid, cursor-agent, and agy expose no context-stripping flags at all;
+ * droid, cursor-agent, agy, and aivo expose no context-stripping flags at all;
  * they run ambient. That silent gap only warns when a flow EXPLICITLY sets
  * `_isolated: true` — the ambient default would otherwise warn on every run.
  *

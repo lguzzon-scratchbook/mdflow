@@ -188,6 +188,14 @@ export const ompPortableAdapter = createPortableAdapter(
   { model: true, temperature: false, maxTokens: false }
 );
 
+// aivo exposes --model (consumed by aivo itself: -m/--model) but no
+// temperature or max-tokens flags (per `aivo run --help`), so dropped.
+export const aivoPortableAdapter = createPortableAdapter(
+  "aivo",
+  { model: "model", temperature: "temperature", "max-tokens": "max-tokens" },
+  { model: true, temperature: false, maxTokens: false }
+);
+
 const PORTABLE_ADAPTERS: Record<string, Adapter> = {
   claude: claudePortableAdapter,
   codex: codexPortableAdapter,
@@ -201,6 +209,7 @@ const PORTABLE_ADAPTERS: Record<string, Adapter> = {
   grok: grokPortableAdapter,
   kimi: kimiPortableAdapter,
   omp: ompPortableAdapter,
+  aivo: aivoPortableAdapter,
 };
 
 /**
