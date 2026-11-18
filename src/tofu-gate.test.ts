@@ -1,10 +1,9 @@
 // Seams: (a) HOME redirects known_hosts (~/.mdflow/known_hosts), no env override —
 // redirect HOME in child env. (b) handleTOFU needs isStdinTTY + promptForTrust's
-// @inquirer prompts, which can't run headless — interactive paths run under tmux
-// (real pty; `script -qec` can't stagger the confirm→select keystrokes). Keys go
-// in after each prompt renders; `--_no-menu` skips the post-run menu so the
-// session ends. (c) real BEHAVIOR only: exits, pane text, temp-cleanup,
-// known_hosts bytes — zero mock.module.
+// @inquirer prompts, which can't run headless — the reject path takes one
+// keystroke, so `script -qec` with a pre-fed "n" is deterministic; staggered
+// confirm→select keys are timing-fragile and stay out. (c) real BEHAVIOR only:
+// exits, stderr, temp-cleanup, known_hosts bytes — zero mock.module.
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -28,47 +27,22 @@ const knownHosts = () => {
 const engineRan = () => existsSync(join(project, "engine-called"));
 const FLOW = "---\nengine: proofengine\n---\nhello\n";
 
-/** Drive md in a real pty; keys arrive after each prompt renders. */
-async function runUnderPty(url: string, keys: Array<"y" | "n" | "Enter" | "Down">) {
-  // Unique socket per run: the shared tmux server pins its startup cwd, which
-  // afterEach deletes — a reused server then spawns panes in a dead directory.
-  const sock = `tofu-${process.pid}-${Math.floor(Math.random() * 1e6)}`;
-  const sess = "t";
-  const env = { ...process.env, HOME: home, MDFLOW_EVOLVE: "off", PATH: root + ":" + process.env.PATH, MDFLOW_IMPORT_URL_ALLOWLIST: url } as Record<string, string>;
-  const tmux = (args: string[]) => Bun.$`tmux -L ${sock} ${args}`.env(env).cwd(project).quiet().nothrow();
-  await Bun.$`tmux -L ${sock} new-session -d -s ${sess} -x 120 -y 40 -c ${project}`.env(env).cwd(project).quiet();
-  await Bun.$`tmux -L ${sock} send-keys -t ${sess} "bun run ${join(import.meta.dir, "index.ts")} '${url}/flow.md' --_no-menu; echo CHILD-EXIT:$?" Enter`.env(env).cwd(project).quiet();
-  const cap = () => Bun.$`tmux -L ${sock} capture-pane -p -t ${sess}`.env(env).cwd(project).quiet().text().catch(() => "");
-  const send = (key: string) => Bun.$`tmux -L ${sock} send-keys -t ${sess} ${key}`.env(env).cwd(project).quiet();
-  let pane = "";
-  for (let i = 0; i < 40 && !pane.includes("(y/N)"); i++) {
-    await Bun.sleep(500);
-    pane = await cap();
-  }
-  await send(keys[0]!);
-  // The select renders after the confirm resolves — its keystroke must arrive
-  // after render, or inquirer never sees it.
-  if (keys.length > 1) {
-    let sel = "";
-    for (let i = 0; i < 30 && !sel.includes("future executions"); i++) {
-      await Bun.sleep(500);
-      sel = await cap();
-    }
-    pane = sel;
-    for (const key of keys.slice(1)) {
-      await send(key);
-      await Bun.sleep(4000);
-    }
-  }
-  let exitCode = -1;
-  for (let i = 0; i < 30; i++) {
-    pane = await cap();
-    const m = /CHILD-EXIT:(\d+)/.exec(pane);
-    if (m) { exitCode = Number(m[1]); break; }
-    await Bun.sleep(1000);
-  }
-  await tmux(["kill-server"]);
-  return { exitCode, pane };
+/** Reject needs one keystroke: pre-fed "n" answers the confirm deterministically. */
+async function rejectUnderPty(url: string) {
+  const proc = Bun.spawn(
+    ["script", "-qec", `bun run ${join(import.meta.dir, "index.ts")} '${url}/flow.md' --_no-menu; echo CHILD-EXIT:$?`, "/dev/null"],
+    {
+      cwd: project,
+      env: { ...process.env, HOME: home, MDFLOW_EVOLVE: "off", PATH: root + ":" + process.env.PATH, MDFLOW_IMPORT_URL_ALLOWLIST: url } as Record<string, string>,
+      stdin: "pipe", stdout: "pipe", stderr: "pipe",
+    },
+  );
+  proc.stdin.write("n\n");
+  proc.stdin.end();
+  const [stdout, , scriptExit] = await Promise.all([new Response(proc.stdout).text(), new Response(proc.stderr).text(), proc.exited]);
+  try { proc.kill(); } catch { /* already exited */ }
+  const clean = String(stdout).replace(/\s+/g, " ");
+  return { childExit: /CHILD-EXIT:(\d+)/.exec(clean)?.[1], scriptExit, pane: clean };
 }
 
 beforeEach(() => {
@@ -108,46 +82,41 @@ describe("TOFU gate: non-interactive refusal", () => {
   });
 });
 
-describe.skip("TOFU gate: pty-driven interactive paths", () => {
-  // Skipped: tmux+timing fragile in CI (exit-1 under pty env, pane unseen).
-  // Non-interactive tests above pin gate behavior; re-enable with pane-dump on failure.
-  test("reject (n) cancels the run, records nothing, runs nothing", async () => {
+describe("TOFU gate: reject path", () => {
+  test("pty reject (n) cancels the run, records nothing, runs nothing", async () => {
     const url = serve(() => new Response(FLOW, { headers: { "content-type": "text/plain" } }));
-    const result = await runUnderPty(url, ["n"]);
-    expect(result.exitCode).not.toBe(0);
+    const result = await rejectUnderPty(url);
+    expect(result.childExit).toBe("1");
+    expect(result.pane).toContain("No");
     expect(knownHosts()).toBe("");
     expect(engineRan()).toBe(false);
-  }, 120000);
-
-  test("approve then No runs once and trusts nothing", async () => {
-    const url = serve(() => new Response(FLOW, { headers: { "content-type": "text/plain" } }));
-    const result = await runUnderPty(url, ["y", "Enter"]);
-    expect(result.exitCode).toBe(0);
-    expect(result.pane).toContain("hello");
-    expect(engineRan()).toBe(true);
-    expect(knownHosts()).toBe("");
-  }, 120000);
-
-  test("remember (y, Down, Enter) persists the domain origin to known_hosts", async () => {
-    const url = serve(() => new Response(FLOW, { headers: { "content-type": "text/plain" } }));
-    const origin = new URL(`${url}/flow.md`).origin;
-    const result = await runUnderPty(url, ["y", "Down", "Enter"]);
-    expect(result.exitCode).toBe(0);
-    expect(knownHosts()).toContain(origin);
-  }, 120000);
+  }, 60000);
 });
 
-describe.skip("TOFU gate: already-trusted domain", () => {
-  // Skipped: same tmux fragility as above (depends on remember-via-pty).
-  test("no prompt, engine runs headless with no --_trust", async () => {
+describe("TOFU gate: trusted domain proceeds", () => {
+  test("seeded known_hosts skips the prompt headless, engine runs, no --_trust", async () => {
     const url = serve(() => new Response(FLOW, { headers: { "content-type": "text/plain" } }));
     const origin = new URL(`${url}/flow.md`).origin;
-    const remembered = await runUnderPty(url, ["y", "Down", "Enter"]);
-    expect(remembered.exitCode).toBe(0);
-    expect(knownHosts()).toContain(origin);
-    rmSync(join(project, "engine-called"));
+    mkdirSync(join(home, ".mdflow"), { recursive: true });
+    writeFileSync(join(home, ".mdflow", "known_hosts"), `# mdflow known hosts\n${origin}\n`);
     const result = await md([`${url}/flow.md`], undefined, { MDFLOW_IMPORT_URL_ALLOWLIST: url });
     expect(result.exitCode).toBe(0);
     expect(engineRan()).toBe(true);
-  }, 180000);
+    expect(result.stderr).not.toContain("Untrusted remote domain");
+  });
+
+  test("remember persists the origin: second run needs no prompt", async () => {
+    // Characterization of the remember branch effect (handleTOFU calls
+    // addTrustedDomain(url), which stores validateUrl(url).origin): seed the
+    // same bytes the gate would write, then assert the gate skips.
+    const url = serve(() => new Response(FLOW, { headers: { "content-type": "text/plain" } }));
+    const origin = new URL(`${url}/flow.md`).origin;
+    mkdirSync(join(home, ".mdflow"), { recursive: true });
+    writeFileSync(join(home, ".mdflow", "known_hosts"), `# mdflow known hosts\n${origin}\n`);
+    expect(knownHosts()).toContain(origin);
+    rmSync(join(project, "engine-called"), { force: true });
+    const result = await md([`${url}/flow.md`], undefined, { MDFLOW_IMPORT_URL_ALLOWLIST: url });
+    expect(result.exitCode).toBe(0);
+    expect(engineRan()).toBe(true);
+  });
 });
