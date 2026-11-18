@@ -53,7 +53,6 @@ import {
 	loadFullConfig,
 	applyDefaults,
 	applyInteractiveMode,
-	getDeclaredFlowDirectories,
 	isInteractiveModeEnabled,
 } from "./config";
 import { getAdapter as getEngineAdapter } from "./adapters";
@@ -82,8 +81,7 @@ import {
 	addTrustedDomain,
 	extractDomain,
 } from "./trust";
-import { basename, dirname, resolve, join, delimiter, sep } from "path";
-import { homedir } from "os";
+import { basename, dirname, resolve, join } from "path";
 import { existsSync } from "node:fs";
 // Lazy-load heavy dependencies for cold start optimization
 import { exceedsLimit, StdinSizeLimitError } from "./limits";
@@ -107,7 +105,7 @@ import {
 } from "./compat";
 import type { SystemEnvironment } from "./system-environment";
 import { maskArgsArray } from "./secrets";
-import { isRegistryPath, resolveProjectRootWith } from "./project-root";
+import { isRegistryPath } from "./project-root";
 import {
 	unusedCliVarWarnings,
 	missingVariablesMessage,
@@ -118,6 +116,12 @@ import {
 	formatCommandPreview,
 	type WorkbenchChildInvocation,
 } from "./cli-runner-helpers";
+import {
+	fileNotFoundMessage,
+	resolveFilePath,
+	parseRegistryArgs,
+	assertNoUnknownRegistryFlags,
+} from "./cli-runner-resolve";
 export {
 	unusedCliVarWarnings,
 	promptPositionals,
@@ -388,196 +392,17 @@ export class CliRunner {
 		if (logPath) this.writeStderr(`   Detailed logs: ${logPath}`);
 	}
 
-	// A bare token like `md reviw` is more likely a mistyped command or flow
-	// name than a file path, so the error should point at both namespaces.
-	private fileNotFoundMessage(requested: string, resolved: string): string {
-		const looksLikeName =
-			!requested.includes("/") &&
-			!requested.includes("\\") &&
-			!/\.md$/i.test(requested);
-		if (looksLikeName) {
-			return `No command or flow named "${requested}". Run 'md help' for commands, or 'md roster --json' to list flows.`;
-		}
-		return `File not found: ${resolved}`;
+	private resolveDeps() {
+		return {
+			fs: this.env.fs,
+			cwd: this.cwd,
+			configCwd: this.configCwd(),
+			pathEnv: this.processEnv.PATH,
+		};
 	}
 
-	/**
-	 * Resolve file path by checking multiple locations in order:
-	 * 1. As-is (absolute path or relative to cwd)
-	 * 2. Project flow roster: ./flows/<filename>
-	 * 3. Legacy project agents: ./.mdflow/<filename>
-	 *    3b. Project registry installs: ./.mdflow/registry/<filename>
-	 * 4. User flows: ~/.mdflow/flows/<filename>
-	 *    4b. User registry installs: ~/.mdflow/registry/<filename>
-	 * 5. Config-declared roster directories (flows.directories)
-	 * 6. Legacy user agents: ~/.mdflow/<filename>
-	 * 7. PATH directories (for files without path separators)
-	 *
-	 * Simple flow names may omit the .md extension (`md review`).
-	 */
-	private async resolveFilePath(filePath: string): Promise<string> {
-		const simpleName = !filePath.includes("/") && !filePath.includes(sep);
-		const candidateNames =
-			simpleName && !filePath.toLowerCase().endsWith(".md")
-				? [filePath, `${filePath}.md`]
-				: [filePath];
-
-		// 1. Try as-is (could be absolute or relative from cwd)
-		for (const candidate of candidateNames) {
-			if (await this.env.fs.exists(candidate)) {
-				return candidate;
-			}
-		}
-
-		// Only search directories for simple filenames (no path separators)
-		// Check for both forward slash and platform-specific separator for cross-platform support
-		if (simpleName) {
-			const { projectRoot } = await resolveProjectRootWith(
-				this.cwd,
-				this.env.fs,
-			);
-
-			// 2. Try the canonical roster at the nearest project root.
-			for (const candidate of candidateNames) {
-				const rosterPath = join(projectRoot, "flows", candidate);
-				if (await this.env.fs.exists(rosterPath)) {
-					return rosterPath;
-				}
-			}
-
-			// 3. Try the legacy project directory at the same project root.
-			for (const candidate of candidateNames) {
-				const projectPath = join(projectRoot, ".mdflow", candidate);
-				if (await this.env.fs.exists(projectPath)) {
-					return projectPath;
-				}
-			}
-
-			// 3b. Registry installs at the project scope. `md install` puts
-			// flows here and `md list`/the roster surface them — chaos round 4
-			// found them unreachable by name (the runner never looked).
-			// Registry provenance (remote hooks trust) is enforced downstream
-			// via isRegistryFlowPath, not by hiding the file.
-			for (const candidate of candidateNames) {
-				const projectRegistryPath = join(
-					projectRoot,
-					".mdflow",
-					"registry",
-					candidate,
-				);
-				if (await this.env.fs.exists(projectRegistryPath)) {
-					return projectRegistryPath;
-				}
-			}
-
-			// 4. Try the canonical user roster: ~/.mdflow/flows/
-			for (const candidate of candidateNames) {
-				const userFlowsPath = join(homedir(), ".mdflow", "flows", candidate);
-				if (await this.env.fs.exists(userFlowsPath)) {
-					return userFlowsPath;
-				}
-			}
-
-			// 4b. Registry installs at the user scope.
-			for (const candidate of candidateNames) {
-				const userRegistryPath = join(
-					homedir(),
-					".mdflow",
-					"registry",
-					candidate,
-				);
-				if (await this.env.fs.exists(userRegistryPath)) {
-					return userRegistryPath;
-				}
-			}
-
-			// 5. Try config-declared roster directories
-			try {
-				const declared = await getDeclaredFlowDirectories({
-					cwd: this.configCwd(),
-				});
-				for (const dir of [...declared.project, ...declared.global]) {
-					for (const candidate of candidateNames) {
-						const declaredPath = join(dir, candidate);
-						if (await this.env.fs.exists(declaredPath)) {
-							return declaredPath;
-						}
-					}
-				}
-			} catch {
-				// Declared directories are best-effort for name resolution; a
-				// broken config is reported by the main config load path.
-			}
-
-			// 6. Try the legacy user directory: ~/.mdflow/
-			for (const candidate of candidateNames) {
-				const userPath = join(homedir(), ".mdflow", candidate);
-				if (await this.env.fs.exists(userPath)) {
-					return userPath;
-				}
-			}
-
-			// 7. Try $PATH directories
-			// Use path.delimiter for cross-platform support (: on Unix, ; on Windows)
-			const pathDirs = (this.processEnv.PATH || "").split(delimiter);
-			for (const dir of pathDirs) {
-				if (!dir) continue;
-				for (const candidate of candidateNames) {
-					const pathFilePath = join(dir, candidate);
-					if (await this.env.fs.exists(pathFilePath)) {
-						return pathFilePath;
-					}
-				}
-			}
-		}
-
-		// Not found anywhere - return original for error message
-		return filePath;
-	}
-
-	private parseRegistryArgs(args: string[]): {
-		scope?: "project" | "user";
-		positional: string[];
-	} {
-		let scope: "project" | "user" | undefined;
-		const positional: string[] = [];
-
-		for (const arg of args) {
-			if (arg === "--project" || arg === "-p") {
-				scope = "project";
-				continue;
-			}
-			if (arg === "--global" || arg === "-g" || arg === "--user") {
-				scope = "user";
-				continue;
-			}
-			positional.push(arg);
-		}
-
-		return { scope, positional };
-	}
-
-	/**
-	 * Reject unknown flags on registry subcommands (install/remove/list).
-	 * Their only valid positionals are URLs and flow names, which never begin
-	 * with "-", so a dash-prefixed positional is a typo'd/unknown flag — e.g.
-	 * `md remove --gobal name` used to silently remove from the wrong scope
-	 * (chaos round 6). Only `--json` is allowed alongside (handled elsewhere).
-	 */
-	private assertNoUnknownRegistryFlags(
-		subcommand: string,
-		positional: string[],
-	): void {
-		const unknown = positional.find(
-			(arg) => arg.startsWith("-") && arg !== "--json",
-		);
-		if (unknown) {
-			throw new ConfigurationError(
-				`Unknown ${subcommand} option: ${unknown}. ` +
-					`Valid flags: --global (-g) / --project (-p). Run 'md ${subcommand} --help'.`,
-				1,
-			);
-		}
+	private async resolveFilePathBound(filePath: string): Promise<string> {
+		return resolveFilePath(filePath, this.resolveDeps());
 	}
 
 	private resetJsonModeState(): void {
@@ -936,7 +761,7 @@ export class CliRunner {
 		const cliArgs = parseCliArgs(argv);
 		const subcommand = cliArgs.filePath;
 		const jsonModeRequested = cliArgs.passthroughArgs.includes("--json");
-		const registryArgs = this.parseRegistryArgs(cliArgs.passthroughArgs);
+		const registryArgs = parseRegistryArgs(cliArgs.passthroughArgs);
 
 		// Central --help gate: management commands must print usage and exit 0
 		// before any filesystem, network, registry, or prompt work. Commands with
@@ -1005,7 +830,7 @@ export class CliRunner {
 			return { exitCode: 0 };
 		}
 		if (subcommand === "install") {
-			this.assertNoUnknownRegistryFlags("install", registryArgs.positional);
+			assertNoUnknownRegistryFlags("install", registryArgs.positional);
 			const { installAgent } = await import("./registry");
 			const spec = registryArgs.positional[0];
 			if (!spec) {
@@ -1030,7 +855,7 @@ export class CliRunner {
 			return { exitCode: 0 };
 		}
 		if (subcommand === "remove") {
-			this.assertNoUnknownRegistryFlags("remove", registryArgs.positional);
+			assertNoUnknownRegistryFlags("remove", registryArgs.positional);
 			const { removeAgent } = await import("./registry");
 			const name = registryArgs.positional[0];
 			if (!name) {
@@ -1051,7 +876,7 @@ export class CliRunner {
 			return { exitCode: 0 };
 		}
 		if (subcommand === "list") {
-			this.assertNoUnknownRegistryFlags("list", registryArgs.positional);
+			assertNoUnknownRegistryFlags("list", registryArgs.positional);
 			const { listAgents } = await import("./registry");
 			const agents = await listAgents({
 				scope: registryArgs.scope,
@@ -1505,7 +1330,7 @@ export class CliRunner {
 			isRemote = true;
 		} else {
 			// Resolve local file path by checking multiple directories
-			localFilePath = await this.resolveFilePath(filePath);
+			localFilePath = await this.resolveFilePathBound(filePath);
 		}
 
 		// Initialize ProcessManager for centralized lifecycle management
@@ -1519,7 +1344,7 @@ export class CliRunner {
 
 		if (!(await this.env.fs.exists(localFilePath))) {
 			throw new FileNotFoundError(
-				this.fileNotFoundMessage(filePath, localFilePath),
+				fileNotFoundMessage(filePath, localFilePath),
 			);
 		}
 
@@ -2212,9 +2037,9 @@ export class CliRunner {
 				return fail("--events describes an execution; use dry-run, context, edit or --json separately", 1);
 			}
 			parsed.jsonMode = true; // never prompt in an event stream
-			const localFilePath = await this.resolveFilePath(filePath);
+			const localFilePath = await this.resolveFilePathBound(filePath);
 			if (!(await this.env.fs.exists(localFilePath))) {
-				return fail(this.fileNotFoundMessage(filePath, localFilePath));
+				return fail(fileNotFoundMessage(filePath, localFilePath));
 			}
 
 			pm.initialize();
