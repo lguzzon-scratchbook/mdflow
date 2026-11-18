@@ -28,11 +28,13 @@
 ## Current state
 
 The relevant files:
+
 - `src/secrets.ts` — `redactArgs` (~100-115): `else if (value && typeof value === "object" && !Array.isArray(value))` recurses; arrays fall to `else` and pass through. `maskArgs` (~138-150): identical shape. Sensitive patterns at ~19-26 (`key|token|secret|password|credential|auth`, case-insensitive).
 - `src/logger.ts:123-134` — redacts only plain-object log args, not strings or arrays.
 - `src/secrets.test.ts`, `src/logger.test.ts` — existing test patterns to follow.
 
 Excerpts:
+
 ```ts
 // src/secrets.ts:104-112
 for (const [key, value] of Object.entries(args)) {
@@ -60,11 +62,13 @@ Repo conventions: pure helpers + table tests in `*.test.ts`; redaction is displa
 ## Scope
 
 **In scope**:
+
 - `src/secrets.ts` (`redactArgs`, `maskArgs` array branches)
 - `src/logger.ts` (string/array log-arg redaction, ONLY if it calls into secrets helpers — read first)
 - `src/secrets.test.ts`, `src/logger.test.ts` (new cases)
 
 **Out of scope**:
+
 - `src/history.ts` persistence filtering (separate finding, separate decision — do NOT bundle)
 - Short-flag `--k value` argv masking: handle ONLY if `maskArgsArray`-adjacent and trivial (explicit `-k`/`-t`/`-s` alias list); if it needs a flag-alias registry, note it and SKIP (say so in the commit message)
 - Any change to log LEVELS or log destinations

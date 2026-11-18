@@ -28,11 +28,13 @@
 ## Current state
 
 Relevant files:
+
 - `src/imports-parser.ts:167-178` — `parseLineRange` returns `{ path, start, end }` with no validation (`parseInt` of any `\d+` pair, including `0` and reversed)
 - `src/imports-file.ts:87-98` — `extractLines(content, start, end)`: throws only when `start > lines.length`; clamps end to EOF, floors start at 0
 - `src/imports-parser.test.ts:587+` — `describe('parseLineRange')` with valid-range cases (read them; follow the `toEqual` style)
 
 Excerpts (verified this session):
+
 ```ts
 // src/imports-parser.ts:167-178
 export function parseLineRange(path: string): { path: string; start?: number; end?: number } {
@@ -63,11 +65,13 @@ Repo conventions: parser is pure, tested table-style in `src/imports-parser.test
 ## Scope
 
 **In scope**:
+
 - `src/imports-parser.ts` (`parseLineRange` validation)
 - `src/imports-file.ts` (`extractLines` defensive check — belt-and-braces for direct callers)
 - `src/imports-parser.test.ts` (new cases)
 
 **Out of scope**:
+
 - `parseSymbolExtractionInternal` or any other parser — same file, different syntax, not this bug
 - Changing VALID range semantics (clamping end to EOF stays; `start > lines.length` error stays)
 - `src/imports.ts` orchestrators — they propagate the throw unchanged

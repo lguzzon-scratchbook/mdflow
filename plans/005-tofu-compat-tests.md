@@ -28,6 +28,7 @@ Two trust-critical paths have zero real-behavior tests: the TOFU gate (`handleTO
 ## Current state
 
 Relevant files:
+
 - `src/cli-runner.ts:3309-~3360` — `handleTOFU(filePath, localFilePath, command, baseFrontmatter, rawBody, jsonMode)`: non-TTY/jsonMode → `cleanupRemoteFile` + `SecurityError`; TTY → `promptForTrust`, reject → cleanup + `UserCancelledError`, remember → `addTrustedDomain`. Read the full method before writing tests (ends ~line 3360; confirm the remember branch calls `addTrustedDomain`).
 - `src/compat.ts:33` + `src/cli-runner.ts:592` — `stampCompatAfterSuccess` best-effort wrapper; `src/compat.test.ts:102-195` covers pure `applyCompatStamp`/`stampCreatedVersion`/`stampCompatFile` (47 asserts) but never the runner integration or skip rules (remote/registry/`MDFLOW_EVAL_RUN=1`).
 - `src/remote.test.ts:32` — covers only URL helpers, not the gate. `src/ui.test.ts:338` — comment claims `promptForTrust` simulation, no real gate test (verify by reading before citing in tests).
@@ -46,11 +47,13 @@ Repo conventions: `bun:test` (`describe`/`it`/`expect`), temp dirs, no real netw
 ## Scope
 
 **In scope** (new test files + helpers only; NO prod changes):
+
 - New `src/tofu-gate.test.ts` (or equivalent name): approve / reject / remember-domain paths
 - New `src/compat-runner.test.ts` (or extend `src/compat.test.ts` — prefer EXTEND if the file's structure fits; do not create a parallel file unnecessarily): stamp-written-on-success, skipped-for-remote, run-outcome-unchanged-on-stamp-throw
 - Minimal test helpers if the existing `md()` harness can't drive these paths (read `src/test-utils.ts` first)
 
 **Out of scope**:
+
 - ANY change to `src/cli-runner.ts`, `src/compat.ts`, `src/trust.ts` production code — if a test requires a seam that doesn't exist (e.g. known_hosts path not redirectable), STOP and report instead of adding one
 - Headless inquirer driving (flaky by nature — mock or bypass the prompt layer, assert the file/state effects)
 - `MDFLOW_EVAL_RUN=1` end-to-end (assert the skip rule at the unit level)

@@ -4,6 +4,7 @@
 model: haiku
 print: true
 ---
+
 Analyze the following code design for security vulnerabilities and edge cases.
 Be ruthless.
 

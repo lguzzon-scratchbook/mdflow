@@ -38,7 +38,6 @@ Evidence:
 - A separate read-only `claude doctor` run against the invalid project fixture reported `Unknown hook event "DefinitelyNotAHook" was ignored` and emitted the pinned binary's full accepted-event registry (`runs/q1-doctor-invalid/`):
 
   `PreToolUse`, `PostToolUse`, `PostToolUseFailure`, `PostToolBatch`, `Notification`, `UserPromptSubmit`, `UserPromptExpansion`, `SessionStart`, `SessionEnd`, `Stop`, `StopFailure`, `SubagentStart`, `SubagentStop`, `PreCompact`, `PostCompact`, `PermissionRequest`, `PermissionDenied`, `Setup`, `TeammateIdle`, `TaskCreated`, `TaskCompleted`, `Elicitation`, `ElicitationResult`, `ConfigChange`, `WorktreeCreate`, `WorktreeRemove`, `InstructionsLoaded`, `CwdChanged`, `FileChanged`, and `MessageDisplay`.
-
 - The requested eleven-event subset was then loaded in one settings blob under Q5; six events actually fired in that scenario.
 
 Inline JSON pitfalls observed:

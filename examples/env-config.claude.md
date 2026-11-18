@@ -9,5 +9,3 @@ print: true
 ---
 
 How do you like my url? !`echo $BASE_URL`
-
-

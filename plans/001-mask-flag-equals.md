@@ -28,11 +28,13 @@ Secrets passed as `--api-key=sk-live-...` (equals form) stay plaintext in dry-ru
 ## Current state
 
 The relevant files, each with one line on its role:
+
 - `src/secrets.ts` — masking/redaction helpers; `maskArgsArray` (~164-187) and `maskArgs` (~201-224) only mask when the secret is the NEXT argv entry
 - `src/secrets.test.ts` — existing pattern for masking tests (read it first, follow its structure)
 - `src/cli-runner-helpers.ts:164` — `formatCommandPreview` calls `maskArgsArray` (covered automatically)
 
 Excerpts of the code as it exists today:
+
 ```ts
 // src/secrets.ts:171-182
 } else if (arg.startsWith("-")) {
@@ -44,6 +46,7 @@ Excerpts of the code as it exists today:
   }
 }
 ```
+
 Problem: for `--api-key=sk-123`, `keyName` is `api-key=sk-123` and the whole arg is pushed unmasked. Same gap in `maskArgs` (~201-224): recurses into plain objects only, skips arrays, and never splits on `=`.
 
 Repo conventions: small pure helpers in `src/secrets.ts`, tested in `src/secrets.test.ts`; display-masking only, never mutate the real argv. Match the existing `maskValue`/`redactValue` helpers (read them in-file before editing).
@@ -59,10 +62,12 @@ Repo conventions: small pure helpers in `src/secrets.ts`, tested in `src/secrets
 ## Scope
 
 **In scope** (the only files you should modify):
+
 - `src/secrets.ts`
 - `src/secrets.test.ts`
 
 **Out of scope** (do NOT touch, even though they look related):
+
 - `src/cli-runner.ts`, `src/cli-runner-helpers.ts` — callers; they inherit the fix via `maskArgsArray`
 - `src/logger.ts` array recursion (plan 002 covers redaction gaps there)
 - Any change to how secrets are PARSED for execution — display masking only

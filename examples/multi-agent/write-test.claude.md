@@ -4,6 +4,7 @@
 model: opus
 print: true
 ---
+
 I need a TypeScript function that: {{ _1 }}
 
 Don't write the implementation.

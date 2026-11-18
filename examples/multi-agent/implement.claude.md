@@ -4,6 +4,7 @@
 model: sonnet
 print: true
 ---
+
 Here is a test suite. Write the implementation code that makes these tests pass.
 Do not modify the tests.
 
