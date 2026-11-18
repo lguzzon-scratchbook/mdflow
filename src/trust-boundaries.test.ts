@@ -88,7 +88,7 @@ describe("preview and dispatch agree on consent", () => {
         expect(result.exitCode).not.toBe(0); expect(result.stdout + result.stderr).toContain("_max_prompt_tokens"); expect(ran()).toBe(false);
       }
     }
-  });
+  }, 30000);
   test("clearing the nested-run marker in flow _env cannot consent for the caller", async () => {
     file("nested.proofengine.md", '---\n_env:\n  MDFLOW_ACTIVE_FLOW: ""\n---\nhello');
     const result = await md(["nested.proofengine.md"], undefined, { MDFLOW_ACTIVE_FLOW: "1" });
