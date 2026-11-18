@@ -28,7 +28,6 @@ readiness by scraping prose when doctor reports it directly.
 Start every maintenance task with `md doctor --json`. Branch on stable diagnostic codes and effect-labelled next actions rather than scraping prose.
 
 ### Operations
-
 - **FREE** `md doctor --json` — Inspect engines, flows, proof, hooks, compatibility, and next actions.
 - **LOCAL_WRITE** `md init --yes` — Create a deterministic starter roster.
 - **ENGINE** `md init --guided` — Launch an engine-guided setup session that may write an approved roster.
@@ -57,7 +56,6 @@ Start every maintenance task with `md doctor --json`. Branch on stable diagnosti
 - **LOCAL_WRITE** `md roster sync --agents` — With the user's explicit flows-first choice: create or refresh the guidance blocks in AGENTS.md and CLAUDE.md.
 
 ### Safety invariants
-
 - `SEPARATE_RUN_CONSENT`: A real flow run, eval run, proposal run, and source mutation require separate consent.
 - `EVALS_ARE_EXECUTABLE`: Eval sidecars are executable local TypeScript; static plans do not import them, but real eval runs do.
 - `HOOKS_ARE_EXECUTABLE`: Hook sidecars are executable local TypeScript and must be reviewed before use.
