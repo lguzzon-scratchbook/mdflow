@@ -25,6 +25,8 @@ import { cursorAgentAdapter } from "./cursor-agent";
 import { agyAdapter } from "./agy";
 import { grokAdapter } from "./grok";
 import { kimiAdapter } from "./kimi";
+import { ompAdapter } from "./omp";
+import { aivoAdapter } from "./aivo";
 
 /**
  * Default adapter for unknown tools
@@ -135,6 +137,8 @@ function initializeBuiltinAdapters(): void {
   registerAdapter(agyAdapter);
   registerAdapter(grokAdapter);
   registerAdapter(kimiAdapter);
+  registerAdapter(ompAdapter);
+  registerAdapter(aivoAdapter);
 }
 
 // Initialize built-in adapters on module load

@@ -210,13 +210,15 @@ describe("SUPPORTED_COMMANDS", () => {
     expect(SUPPORTED_COMMANDS).toContain("agy");
   });
 
-  it("has exactly 11 built-in commands (registry/PATH engines extend beyond)", () => {
-    expect(SUPPORTED_COMMANDS.length).toBe(11);
+  it("has exactly 13 built-in commands (registry/PATH engines extend beyond)", () => {
+    expect(SUPPORTED_COMMANDS.length).toBe(13);
   });
 
-  it("includes the grok and kimi engines", () => {
+  it("includes the grok, kimi, omp, and aivo engines", () => {
     expect(SUPPORTED_COMMANDS).toContain("grok");
     expect(SUPPORTED_COMMANDS).toContain("kimi");
+    expect(SUPPORTED_COMMANDS).toContain("omp");
+    expect(SUPPORTED_COMMANDS).toContain("aivo");
   });
 });
 

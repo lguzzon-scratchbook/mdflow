@@ -26,6 +26,7 @@ import { piAdapter } from "./adapters/pi";
 import { droidAdapter } from "./adapters/droid";
 import { cursorAgentAdapter } from "./adapters/cursor-agent";
 import { agyAdapter } from "./adapters/agy";
+import { ompAdapter } from "./adapters/omp";
 import type { AgentFrontmatter } from "./types";
 
 describe("resolveIsolationMode", () => {
@@ -150,6 +151,16 @@ describe("per-engine isolation defaults (verified flags only)", () => {
     expect(piAdapter.getDefaults()).toEqual({ print: true });
   });
 
+  test("omp: partial set, NOT hermetic (omp 18.3.2)", () => {
+    const isolation = resolveIsolationDefaults(ompAdapter, "omp").defaults;
+    expect(isolation).toEqual({
+      "no-extensions": true,
+      "no-skills": true,
+      "no-rules": true,
+      "no-session": true,
+    });
+    expect(ompAdapter.getDefaults()).toEqual({ print: true });
+  });
   test("droid/cursor-agent/agy have no isolation controls and warn", () => {
     for (const [adapter, name] of [
       [droidAdapter, "droid"],

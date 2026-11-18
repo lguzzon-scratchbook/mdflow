@@ -108,7 +108,7 @@ file with no frontmatter and no explicit engine is a document, not a flow:
 `md README.md` prints it instead of executing it.
 
 Bundled engine adapters: `claude`, `codex`, `copilot`, `gemini`*, `droid`,
-`opencode`, `pi` (default), `cursor-agent`, `agy` (Google Antigravity).
+`opencode`, `pi` (default), `cursor-agent`, `agy` (Google Antigravity), `grok`, `kimi`, `omp` (oh-my-pi), `aivo` (router: runs claude/codex/gemini/opencode/pi/grok).
 
 \* Google sunset the gemini CLI for individual accounts in June 2026; the
 gemini adapter remains only for Gemini Code Assist Standard/Enterprise orgs.

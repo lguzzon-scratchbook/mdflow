@@ -15,6 +15,7 @@ import { geminiAdapter } from "./adapters/gemini";
 import { copilotAdapter } from "./adapters/copilot";
 import { droidAdapter } from "./adapters/droid";
 import { piAdapter } from "./adapters/pi";
+import { ompAdapter } from "./adapters/omp";
 import { CommandError } from "./errors";
 import type { AgentFrontmatter } from "./types";
 
@@ -95,7 +96,6 @@ describe("claude translation", () => {
     expect(frontmatter["append-system-prompt"]).toBe("a\n\nb");
   });
 });
-
 describe("pi translation", () => {
   test("replace + repeatable append", () => {
     const { frontmatter } = applySystemPromptToFrontmatter(
@@ -106,6 +106,18 @@ describe("pi translation", () => {
     const args = buildArgs(frontmatter, new Set(), "pi");
     // pi's --append-system-prompt can be used multiple times
     expect(args.filter((a) => a === "--append-system-prompt")).toHaveLength(2);
+  });
+});
+
+describe("omp translation", () => {
+  test("replace + joined single append (not repeatable)", () => {
+    const { frontmatter } = applySystemPromptToFrontmatter(
+      ompAdapter, "omp", {}, { replace: "sys", append: ["a", "b"] }
+    );
+    expect(frontmatter["system-prompt"]).toBe("sys");
+    expect(frontmatter["append-system-prompt"]).toBe("a\n\nb");
+    const args = buildArgs(frontmatter, new Set(), "omp");
+    expect(args.filter((a) => a === "--append-system-prompt")).toHaveLength(1);
   });
 });
 
