@@ -89,10 +89,26 @@ export {
   createImportError,
   ANSI_ESCAPE_REGEX,
   isMarkdownFileCommand,
+  isBinaryFile,
+  isBinaryFileAsync,
+  expandTilde,
+  detectProjectRoot,
+  getProjectRoot,
+  canonicalCandidate,
+  containedImportPath,
+  resolveImportPath,
 } from "./imports-shared";
 import {
   ImportBudget,
   createImportError,
+  isBinaryFile,
+  isBinaryFileAsync,
+  expandTilde,
+  detectProjectRoot,
+  getProjectRoot,
+  canonicalCandidate,
+  containedImportPath,
+  resolveImportPath,
 } from "./imports-shared";
 import {
   ParallelDashboard,
@@ -100,13 +116,6 @@ import {
   processExecutableCodeFence,
 } from "./imports-command";
 
-const PROJECT_ROOT_MARKERS = [
-  ".git",
-  "package.json",
-  "mdflow.config.yaml",
-  ".mdflow.yaml",
-  ".mdflow.json",
-];
 
 const URL_ALLOWLIST_ENV_KEYS = [
   "MDFLOW_IMPORT_URL_ALLOWLIST",
@@ -117,172 +126,6 @@ const URL_BLOCKLIST_ENV_KEYS = [
   "MDFLOW_IMPORT_URL_BLOCKLIST",
   "MDFLOW_URL_BLOCKLIST",
 ] as const;
-
-/**
- * File extensions that are known to be binary
- * These are checked first before content inspection
- */
-const BINARY_EXTENSIONS = new Set([
-  // Images
-  ".png", ".jpg", ".jpeg", ".gif", ".ico", ".webp", ".bmp", ".svg", ".tiff", ".tif",
-  // Executables and libraries
-  ".exe", ".dll", ".so", ".dylib", ".bin",
-  // Archives
-  ".zip", ".tar", ".gz", ".7z", ".rar", ".bz2", ".xz",
-  // Documents
-  ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx",
-  // Databases
-  ".sqlite", ".db", ".sqlite3",
-  // Data files
-  ".dat", ".data",
-  // System files
-  ".DS_Store",
-  // Other binary formats
-  ".wasm", ".pyc", ".class", ".o", ".a", ".lib",
-]);
-
-/** Size of buffer to check for binary content (8KB) */
-const BINARY_CHECK_SIZE = 8192;
-
-/**
- * Check if a file is binary based on extension or content
- *
- * @param filePath - Path to the file
- * @param content - Optional buffer to check (if already read)
- * @returns true if file appears to be binary
- */
-export function isBinaryFile(filePath: string, content?: Buffer): boolean {
-  // Check extension first (fast path)
-  const ext = filePath.toLowerCase().match(/\.[^./\\]+$/)?.[0] || "";
-  if (BINARY_EXTENSIONS.has(ext)) {
-    return true;
-  }
-
-  // Check for files without extensions that are typically binary
-  const base = filePath.split(/[/\\]/).pop() || "";
-  if (base === ".DS_Store") {
-    return true;
-  }
-
-  // If content provided, check for null bytes
-  if (content) {
-    const checkSize = Math.min(content.length, BINARY_CHECK_SIZE);
-    for (let i = 0; i < checkSize; i++) {
-      if (content[i] === 0) {
-        return true;
-      }
-    }
-  }
-
-  return false;
-}
-
-/**
- * Check if a file is binary by reading its first bytes
- *
- * @param filePath - Path to the file
- * @returns true if file appears to be binary
- */
-export async function isBinaryFileAsync(filePath: string): Promise<boolean> {
-  // Check extension first (fast path)
-  if (isBinaryFile(filePath)) {
-    return true;
-  }
-
-  // Read first 8KB and check for null bytes
-  let bytes: Uint8Array;
-  try {
-    const file = Bun.file(filePath);
-    const buffer = await file.slice(0, BINARY_CHECK_SIZE).arrayBuffer();
-    bytes = new Uint8Array(buffer);
-  } catch (err) {
-    throw createImportError(
-      `Failed to inspect imported file "${filePath}" for binary content.`,
-      "IMPORT_FILE_READ_FAILED",
-      {
-        filePath,
-        suggestion: "Verify the file exists and is readable before importing it.",
-      },
-      err
-    );
-  }
-
-  for (let i = 0; i < bytes.length; i++) {
-    if (bytes[i] === 0) {
-      return true;
-    }
-  }
-
-  return false;
-}
-
-/**
- * Expand a path that may start with ~ to use home directory
- */
-function expandTilde(filePath: string): string {
-  if (filePath.startsWith("~/") || filePath === "~") {
-    return filePath.replace("~", homedir());
-  }
-  return filePath;
-}
-
-/**
- * Discover a project root for import path boundary checks.
- * Preference order:
- * 1. Nearest directory containing common project markers (.git/package.json/etc.)
- * 2. Starting directory when no marker exists.
- */
-function detectProjectRoot(startDir: string): string {
-  let current = resolve(startDir);
-  let previous = "";
-
-  while (current !== previous) {
-    for (const marker of PROJECT_ROOT_MARKERS) {
-      if (existsSync(join(current, marker))) {
-        return current;
-      }
-    }
-
-    previous = current;
-    current = dirname(current);
-  }
-
-  return resolve(startDir);
-}
-
-function getProjectRoot(currentFileDir: string, importCtx?: ImportContext): string {
-  if (importCtx?._projectRoot) {
-    return importCtx._projectRoot;
-  }
-
-  const discovered = importCtx?.invocationCwd
-    ? resolve(importCtx.invocationCwd)
-    : detectProjectRoot(currentFileDir);
-
-  if (importCtx) {
-    importCtx._projectRoot = discovered;
-  }
-
-  return discovered;
-}
-
-/**
- * Resolve an import path relative to the current file's directory
- */
-function canonicalCandidate(path: string): string {
-  try { return realpathSync(path); } catch (err) {
-    if ((err as NodeJS.ErrnoException).code !== "ENOENT" || dirname(path) === path) throw err;
-    return join(canonicalCandidate(dirname(path)), basename(path));
-  }
-}
-
-function containedImportPath(root: string, path: string): string {
-  return sanitizePath(realpathSync(root), canonicalCandidate(path));
-}
-
-function resolveImportPath(importPath: string, currentFileDir: string, projectRoot: string): string {
-  return containedImportPath(projectRoot, resolve(currentFileDir, expandTilde(importPath)));
-}
 
 function parseListFromEnv(value: string | undefined): string[] {
   if (!value) return [];

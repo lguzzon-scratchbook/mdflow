@@ -23,7 +23,8 @@
 
 import { mkdtempSync, rmSync, existsSync, readFileSync, realpathSync, statSync } from "fs";
 import { tmpdir, homedir } from "os";
-import { join, dirname, resolve, basename, relative, sep } from "path";
+import { join, dirname, resolve, basename } from "path";
+import { logicalPath, withinDir } from "./evals-fingerprint";
 import { listEffectiveConfigFiles, loadFullConfig } from "./config";
 import { isRegistryPath, resolveProjectRoot } from "./project-root";
 import { resolveEngine } from "./command";
@@ -489,10 +490,6 @@ function packageVersion(): string {
   }
 }
 
-function logicalPath(root: string, path: string): string {
-  return relative(root, path).split("\\").join("/") || basename(path);
-}
-
 /**
  * Fingerprint graph bounds. Generous for real flows, but a hard stop for
  * pathological or hostile graphs — a breach makes the fingerprint
@@ -514,10 +511,6 @@ function consumeGraphBudget(budget: GraphBudget, path: string, bytes: number): v
       `fingerprint graph exceeds safe bounds (${GRAPH_MAX_FILES} files / ${GRAPH_MAX_BYTES} bytes) at ${path}`
     );
   }
-}
-
-function withinDir(root: string, path: string): boolean {
-  return path === root || path.startsWith(root + sep);
 }
 
 function canonicalOr(path: string): string {
