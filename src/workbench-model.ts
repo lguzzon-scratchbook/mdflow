@@ -314,11 +314,10 @@ const EFFORT_SUPPORT: Record<string, EffortSupport> = {
 		levels: ["off", "minimal", "low", "medium", "high", "xhigh", "max", "auto"],
 		frontmatter: (effort) => ({ thinking: effort }),
 	},
-	// aivo --effort routes to the inner tool (codex-only; claude-inner warns).
-	aivo: {
-		levels: ["minimal", "low", "medium", "high", "xhigh"],
-		frontmatter: (effort) => ({ effort }),
-	},
+	// No aivo entry: the default `aivo code -p` path rejects --effort
+	// (`error: unexpected argument`), and router mode forwards to the inner
+	// tool whose flag shape varies — no single verified translation exists.
+	// Re-add when a per-subcommand effort mapping is verified.
 };
 
 /** Effort levels an engine supports; empty means the control doesn't exist. */
