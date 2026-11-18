@@ -1,6 +1,6 @@
 {
   "name": "mdflow",
-  "version": "5.1.0",
+  "version": "5.2.0",
   "license": "MIT",
   "module": "src/index.ts",
   "type": "module",
@@ -27,11 +27,11 @@
   "scripts": {
     "test": "bun test --bail=1",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "lint": "oxlint src scripts",
+    "lint": "oxlint src scripts && rumdl check . --fail-on error",
     "test:trust": "bun test src/trust-boundaries.test.ts src/evolution-store-lock.test.ts src/evolve.test.ts src/eval-audit-hardening.test.ts src/hooks-integration.test.ts",
     "security:check": "bun audit --prod && bun audit --audit-level=high && cd site && bun audit",
     "package:check": "bun run scripts/package-smoke.ts",
-    "verify": "bun run typecheck && bun test && bun run facts:check && bun run guidance:check && bun run package:check",
+    "verify": "bun run typecheck && bun run lint && bun test && bun run facts:check && bun run guidance:check && bun run package:check",
     "postversion": "bun run facts && bun run guidance",
     "md": "bun run src/index.ts",
     "bundle": "bun run scripts/bundle.ts -o",

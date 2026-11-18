@@ -102,7 +102,15 @@ export function redactArgs(
   const result: Record<string, unknown> = {};
 
   for (const [key, value] of Object.entries(args)) {
-    if (isSensitiveKey(key)) {
+    if (Array.isArray(value)) {
+      // Redact array elements: objects recurse, bare values redact only under a sensitive key
+      const redactElement = (el: unknown): unknown => {
+        if (Array.isArray(el)) return el.map(redactElement);
+        if (el && typeof el === "object") return redactArgs(el as Record<string, unknown>);
+        return isSensitiveKey(key) ? redactValue(el) : el;
+      };
+      result[key] = value.map(redactElement);
+    } else if (isSensitiveKey(key)) {
       result[key] = redactValue(value);
     } else if (value && typeof value === "object" && !Array.isArray(value)) {
       // Recursively redact nested objects
@@ -136,7 +144,14 @@ export function maskArgs(
   const result: Record<string, unknown> = {};
 
   for (const [key, value] of Object.entries(args)) {
-    if (isSensitiveKey(key) && typeof value === "string") {
+    if (Array.isArray(value)) {
+      const maskElement = (el: unknown): unknown => {
+        if (Array.isArray(el)) return el.map(maskElement);
+        if (el && typeof el === "object") return maskArgs(el as Record<string, unknown>);
+        return isSensitiveKey(key) && typeof el === "string" ? maskValue(el) : el;
+      };
+      result[key] = value.map(maskElement);
+    } else if (isSensitiveKey(key) && typeof value === "string") {
       result[key] = maskValue(value);
     } else if (value && typeof value === "object" && !Array.isArray(value)) {
       // Recursively mask nested objects
@@ -172,11 +187,16 @@ export function maskArgsArray(args: string[]): string[] {
       result.push(maskValue(arg));
       maskNext = false;
     } else if (arg.startsWith("-")) {
-      // Extract key name from flag (e.g., "--api-key" -> "api-key")
-      const keyName = arg.replace(/^-+/, "");
-      result.push(arg);
-      if (isSensitiveKey(keyName)) {
-        maskNext = true;
+      // Split --flag=value on first "="; check the LEFT part only
+      const eq = arg.indexOf("=");
+      const keyName = (eq === -1 ? arg : arg.slice(0, eq)).replace(/^-+/, "");
+      if (eq !== -1 && isSensitiveKey(keyName)) {
+        result.push(`${arg.slice(0, eq)}=${maskValue(arg.slice(eq + 1))}`);
+      } else {
+        result.push(arg);
+        if (isSensitiveKey(keyName)) {
+          maskNext = true;
+        }
       }
     } else {
       result.push(arg);

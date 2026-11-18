@@ -11,6 +11,7 @@ print: true
 Create a new feature called "{{ _feature_name }}" in {{ _target_dir }}.
 
 Include:
+
 - A main module file
 - Unit tests
 - README documentation

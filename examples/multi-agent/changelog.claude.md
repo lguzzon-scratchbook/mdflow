@@ -5,6 +5,7 @@
 model: sonnet
 print: true
 ---
+
 Analyze these commits and group them into "Features", "Fixes", and "Chore".
 Ignore merge commits. Output clean Markdown lists.
 

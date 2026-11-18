@@ -4,6 +4,7 @@
 model: opus
 print: true
 ---
+
 Review this file for security vulnerabilities (XSS, SQLi, sensitive data exposure).
 Output a JSON list of issues found with line numbers and descriptions.
 If none, output "CLEAN".

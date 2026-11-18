@@ -91,7 +91,7 @@ command -v md || npm i -g mdflow
 
 When a project has no `./flows` yet, scaffold the full convention:
 
-```
+```text
 flows/
 ├── README.md          # roster index: one line per flow, what it does, its eval status
 ├── review.md          # one markdown agent per job

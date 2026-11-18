@@ -4,6 +4,7 @@
 # Or just: md optional-flags.claude.md (will prompt for _mode)
 print: true
 ---
+
 {% if _mode == "detailed" %}
 Provide a detailed, comprehensive analysis.
 {% else %}

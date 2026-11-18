@@ -9,7 +9,7 @@ interactive: true
 
 Create a new copilot instructions file based on a user scenario.
 
-## Steps to perform:
+## Steps to perform
 
 1. **Ask the user**: "Describe the task or workflow you want to automate (e.g., 'set up npm publishing', 'deploy to AWS', 'create a new React component'):"
 
@@ -33,7 +33,7 @@ Create a new copilot instructions file based on a user scenario.
 
 5. **Save the file** to `/Users/johnlindquist/agents/instructions/{filename}`
 
-## Example structure:
+## Example structure
 
 ```markdown
 ---
@@ -66,6 +66,7 @@ Description of what this instructions file does.
    - How to confirm success
 ```
 
-## Reference files for patterns:
+## Reference files for patterns
+
 - SETUP_NPM_PUBLISHING.md - Interactive setup with user prompts and browser opening
 - CHECK_ACTIONS.md - Interactive CI status checking

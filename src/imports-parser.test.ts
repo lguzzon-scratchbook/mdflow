@@ -614,6 +614,22 @@ describe('parseLineRange', () => {
       end: 9999,
     });
   });
+
+  it('rejects zero start', () => {
+    expect(() => parseLineRange('./f.ts:0-5')).toThrow(/start at 1/);
+  });
+
+  it('rejects reversed range', () => {
+    expect(() => parseLineRange('./f.ts:50-10')).toThrow(/must not exceed end/);
+  });
+
+  it('accepts single-line range', () => {
+    expect(parseLineRange('./f.ts:5-5')).toEqual({
+      path: './f.ts',
+      start: 5,
+      end: 5,
+    });
+  });
 });
 
 describe('parseSymbolExtraction', () => {

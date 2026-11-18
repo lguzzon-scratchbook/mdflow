@@ -15,7 +15,7 @@ interactive: true
 
 Set up npm Trusted Publishing with GitHub Actions for this project.
 
-## Steps to perform:
+## Steps to perform
 
 0. **Prompt for npm package name**:
    - Ask the user: "What is your npm package name?"
