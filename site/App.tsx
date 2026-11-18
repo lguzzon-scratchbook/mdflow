@@ -251,7 +251,7 @@ export default function App() {
           onUnmute={() => withShaderAudio(audio => { audio.setMuted(false); setMuted(false); })}
         />
 
-        {/* 22 hidden easter eggs + the five-star secret puzzle */}
+        {/* Collectible discoveries and the independent five-star puzzle. */}
         <EasterEggs />
 
         {/* heart HUD for the alien defense game (ShaderGuide owns the rules) */}
@@ -303,6 +303,7 @@ export default function App() {
 
         {/* The hero's promise, mechanized: evidence-gated proposals */}
         <Evolve />
+        <aside className="mx-auto max-w-4xl px-6 pb-12"><a href="/the-trust-boundary/" className="group block border-l-2 border-emerald-500/70 bg-emerald-400/[.035] px-6 py-4 hover:bg-emerald-400/[.07]"><span className="block text-xs font-mono uppercase tracking-widest text-emerald-400">Field notes / 01</span><strong className="font-display text-2xl text-white">A prompt is not a shell. ↗</strong><span className="block text-zinc-400">What a file on disk proved that 2,376 passing tests didn’t.</span></a></aside>
 
         {/* Agent-first: copy/paste prompts are the primary onboarding */}
         <AgentPrompts />
@@ -342,6 +343,7 @@ export default function App() {
             </p>
             <nav aria-label="Resources" className="mt-6 flex flex-wrap justify-center gap-x-6 gap-y-3 px-6 text-sm text-zinc-400">
                 <a href="/docs/" className="hover:text-white transition-colors">Docs</a>
+                <a href="/the-trust-boundary/" className="hover:text-white transition-colors">Field notes</a>
                 <a href="/about/" className="hover:text-white transition-colors">About</a>
                 <a href="/contact/" className="hover:text-white transition-colors">Contact</a>
                 <a href="/privacy/" className="hover:text-white transition-colors">Privacy</a>

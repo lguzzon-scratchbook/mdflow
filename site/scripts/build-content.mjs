@@ -162,6 +162,7 @@ A real flow run, eval run, evolution proposal, and source-changing apply each re
 
 ## Reference library
 
+- [A prompt is not a shell](https://mdflow.dev/the-trust-boundary/): what the execution-boundary audit found and what to change in a flow.
 - [Complete CLI reference](https://mdflow.dev/docs/public-api.md): flags, configuration, JSON objects, event ordering, and error contracts.
 - [Project README](https://mdflow.dev/README.md): installation and workflow examples.
 - [Evolution specification](https://mdflow.dev/docs/evolve.md) and [illustrated deep dive](https://mdflow.dev/evolve-deep-dive/): feedback, proof, review, apply, and rollback.

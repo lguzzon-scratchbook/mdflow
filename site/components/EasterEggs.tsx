@@ -29,7 +29,15 @@ const A3 = 220, C4 = 261.63, D4 = 293.66, E4 = 329.63, G4 = 392, A4 = 440,
 const PENTA = [A3, C4, D4, E4, G4, A4, C5, D4 * 2, E5, G4 * 2];
 const CHORD = [A3, C4, E4, A4];
 
-const EGG_COUNT = 23;
+const EGG_IDS = new Set([
+    'konami', 'type-mdflow', 'type-egg', 'key-b', 'key-h', 'arrow-dance', 'alt-click', 'double-click',
+    'triple-click', 'corners', 'footer-zap', 'v3-badge', 'logo-disco', 'middle-click', 'shake', 'circle',
+    'overload', 'monster-hunt', 'egg-pop', 'idle-fireflies', 'elevator', 'shy-volume', 'welcome-back',
+]);
+const EGG_COUNT = EGG_IDS.size;
+const discoveries = (ids: unknown) => new Set<string>(
+    Array.isArray(ids) ? ids.filter(id => EGG_IDS.has(id)) : [],
+);
 
 const HINTS = [
     '★ The egg likes attention. Boop it three times.',
@@ -52,7 +60,7 @@ const save = (key: string, v: unknown) => {
 
 export const EasterEggs: React.FC = () => {
     const [toast, setToast] = useState<{ text: string; big?: boolean } | null>(null);
-    const [foundCount, setFoundCount] = useState(() => load<string[]>('mdflow-eggs', []).length);
+    const [foundCount, setFoundCount] = useState(0);
     const [step, setStep] = useState(() => load<number>('mdflow-puzzle', 0));
     const toastTimer = useRef(0);
 
@@ -63,9 +71,21 @@ export const EasterEggs: React.FC = () => {
     };
 
     useEffect(() => {
-        // touch devices play too: tap/hold/scroll/two-finger eggs all work;
-        // keyboard and hover eggs simply never fire there
-        const found = new Set(load<string[]>('mdflow-eggs', []));
+        const saved = load<unknown>('mdflow-eggs', []);
+        const found = discoveries(saved);
+        // Returning players keep their original discoveries and separate puzzle progress.
+        if (Array.isArray(saved) && saved.length !== found.size) save('mdflow-eggs', [...found]);
+        setFoundCount(found.size);
+        const discover = (id: string, label: string) => {
+            if (found.has(id)) return;
+            for (const other of discoveries(load<unknown>('mdflow-eggs', []))) found.add(other);
+            found.add(id);
+            save('mdflow-eggs', [...found]);
+            setFoundCount(found.size);
+            show(`🥚 ${found.size}/${EGG_COUNT} — ${label}`);
+            shaderAudio.playNotes([{ f: A5, type: 'sine', gain: 0.03, decay: 0.6, wet: 0.6 },
+                { f: A5 * 1.5, at: 0.09, type: 'sine', gain: 0.025, decay: 0.8, wet: 0.6 }]);
+        };
         let puzzleStep = load<number>('mdflow-puzzle', 0);
         const cools = new Map<string, number>();
         const timers: number[] = [];
@@ -75,16 +95,6 @@ export const EasterEggs: React.FC = () => {
             if ((cools.get(id) ?? 0) > now) return false;
             cools.set(id, now + ms);
             return true;
-        };
-        const discover = (id: string, label: string) => {
-            if (found.has(id)) return;
-            found.add(id);
-            save('mdflow-eggs', [...found]);
-            setFoundCount(found.size);
-            show(`🥚 ${found.size}/${EGG_COUNT} — ${label}`);
-            // first-find sparkle on top of the egg's own voice
-            shaderAudio.playNotes([{ f: A5, type: 'sine', gain: 0.03, decay: 0.6, wet: 0.6 },
-                { f: A5 * 1.5, at: 0.09, type: 'sine', gain: 0.025, decay: 0.8, wet: 0.6 }]);
         };
         const center = () => ({ x: window.innerWidth / 2, y: window.innerHeight / 2 });
 
@@ -158,7 +168,7 @@ export const EasterEggs: React.FC = () => {
         let typeBuf = '';
         let arrowBuf: { k: string; t: number }[] = [];
         const onKey = (e: KeyboardEvent) => {
-            if (e.metaKey || e.ctrlKey || e.altKey) return;
+            if (e.metaKey || e.ctrlKey || e.altKey || (e.target instanceof Element && e.target.closest('input, textarea, select, [contenteditable=true], [role=textbox]'))) return;
             const k = e.key.toLowerCase();
             keyBuf = [...keyBuf, k].slice(-10);
             if (KONAMI.every((v, i) => keyBuf[i] === v)) {
@@ -474,7 +484,7 @@ export const EasterEggs: React.FC = () => {
                 shaderAudio.playNotes([E5, C5, A4, C5, E5, A5].map((f, i) => (
                     { f, at: i * 0.5, type: 'sine' as OscillatorType, gain: 0.028, decay: 1.4, wet: 0.8 })));
             }, 30000);
-            timers.push(idleTimer);
+            // Re-arming replaces the previous timer; retain only the live handle.
         };
         const activity = () => armIdle();
         window.addEventListener('pointermove', activity, { passive: true });
@@ -564,6 +574,7 @@ export const EasterEggs: React.FC = () => {
             volBtn?.removeEventListener('pointerenter', volEnter);
             volBtn?.removeEventListener('pointerleave', volLeave);
             document.removeEventListener('visibilitychange', onVis);
+            window.clearTimeout(idleTimer); window.clearTimeout(toastTimer.current);
             for (const id of timers) { window.clearTimeout(id); window.clearInterval(id); }
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -616,6 +627,7 @@ export const EasterEggs: React.FC = () => {
             {/* discovery / hint toast */}
             {toast && (
                 <div
+                    role="status"
                     className={`fixed bottom-10 left-3 z-50 max-w-sm rounded-lg border px-4 py-3 font-mono backdrop-blur-md pointer-events-none ${
                         toast.big
                             ? 'text-sm border-amber-500/60 bg-amber-950/60 text-amber-200 shadow-[0_0_30px_rgba(251,191,36,0.35)]'
