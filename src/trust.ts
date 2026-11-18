@@ -83,6 +83,21 @@ function formatFrontmatter(frontmatter: AgentFrontmatter): string {
 }
 
 /**
+ * Whether the body preview hides content (single predicate drives remember gating)
+ */
+export function wasTruncated(body: string, maxLength: number = BODY_PREVIEW_LENGTH): boolean {
+  return body.trim().length > maxLength;
+}
+
+/**
+ * Whether to show the full body before offering remember-domain.
+ * Extracted for direct testability (inquirer prompts can't run headless).
+ */
+export function shouldGateRemember(truncated: boolean): boolean {
+  return truncated;
+}
+
+/**
  * Truncate body for preview with ellipsis
  */
 function truncateBody(body: string, maxLength: number = BODY_PREVIEW_LENGTH): string {
@@ -140,6 +155,10 @@ export async function promptForTrust(
   console.error("Body preview:");
   console.error("-".repeat(70));
   console.error(displayUntrusted(truncateBody(body)));
+  if (shouldGateRemember(wasTruncated(body))) {
+    console.error(`Body truncated at ${BODY_PREVIEW_LENGTH} chars — showing full body before remembering.`);
+    console.error(displayUntrusted(body.trim()));
+  }
   console.error("");
   console.error("=".repeat(70));
   console.error("");

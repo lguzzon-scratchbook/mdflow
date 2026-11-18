@@ -151,6 +151,24 @@ describe("redactArgs", () => {
     expect(result.name).toBe("test");
   });
 
+  test("redacts sensitive arrays element-wise", () => {
+    expect(redactArgs({ tokens: ["sk-1", "sk-2"] })).toEqual({
+      tokens: ["[REDACTED]", "[REDACTED]"],
+    });
+  });
+
+  test("redacts objects nested in arrays", () => {
+    expect(redactArgs({ a: [{ token: "sk-1" }] })).toEqual({
+      a: [{ token: "[REDACTED]" }],
+    });
+  });
+
+  test("passes non-sensitive arrays through unchanged", () => {
+    expect(redactArgs({ models: ["opus", "sonnet"] })).toEqual({
+      models: ["opus", "sonnet"],
+    });
+  });
+
   test("handles edge cases", () => {
     expect(redactArgs(null as unknown as Record<string, unknown>)).toBeNull();
     expect(redactArgs(undefined as unknown as Record<string, unknown>)).toBeUndefined();
@@ -192,6 +210,24 @@ describe("maskArgs", () => {
 
     expect((result.auth as Record<string, unknown>).token).toBe("sk-****");
     expect((result.auth as Record<string, unknown>).user).toBe("john");
+  });
+
+  test("masks sensitive arrays element-wise", () => {
+    expect(maskArgs({ tokens: ["sk-1", "sk-2"] })).toEqual({
+      tokens: ["sk-****", "sk-****"],
+    });
+  });
+
+  test("masks objects nested in arrays", () => {
+    expect(maskArgs({ a: [{ token: "sk-1" }] })).toEqual({
+      a: [{ token: "sk-****" }],
+    });
+  });
+
+  test("passes non-sensitive arrays through unchanged", () => {
+    expect(maskArgs({ models: ["opus", "sonnet"] })).toEqual({
+      models: ["opus", "sonnet"],
+    });
   });
 });
 
@@ -264,6 +300,21 @@ describe("maskArgsArray", () => {
   test("handles array with no flags", () => {
     const result = maskArgsArray(["value1", "value2"]);
     expect(result).toEqual(["value1", "value2"]);
+  });
+
+  test("masks --flag=value equals form for sensitive keys", () => {
+    const result = maskArgsArray(["--api-key=sk-123"]);
+    expect(result).toEqual(["--api-key=sk-****"]);
+  });
+
+  test("passes through non-sensitive --flag=value unchanged", () => {
+    const result = maskArgsArray(["--model=opus"]);
+    expect(result).toEqual(["--model=opus"]);
+  });
+
+  test("passes through short -k=value unchanged (not sensitive)", () => {
+    const result = maskArgsArray(["-k=sk-123"]);
+    expect(result).toEqual(["-k=sk-123"]);
   });
 });
 

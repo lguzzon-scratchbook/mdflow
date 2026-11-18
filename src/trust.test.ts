@@ -9,6 +9,8 @@ import {
   isDomainTrusted,
   addTrustedDomain,
   getKnownHostsPath,
+  wasTruncated,
+  shouldGateRemember,
 } from "./trust";
 
 // We'll test the file-based functions using a mock approach
@@ -37,6 +39,34 @@ describe("extractDomain", () => {
 
   test("extracts domain with subdomain", () => {
     expect(extractDomain("https://api.github.com/repos")).toBe("api.github.com");
+  });
+});
+
+describe("wasTruncated", () => {
+  test("short body is not truncated", () => {
+    expect(wasTruncated("short body")).toBe(false);
+  });
+
+  test("exact-500 body is not truncated", () => {
+    expect(wasTruncated("x".repeat(500))).toBe(false);
+  });
+
+  test("501-char body is truncated", () => {
+    expect(wasTruncated("x".repeat(501))).toBe(true);
+  });
+
+  test("whitespace padding doesn't count", () => {
+    expect(wasTruncated(`  ${"x".repeat(500)}  \n`)).toBe(false);
+  });
+});
+
+describe("shouldGateRemember", () => {
+  test("truncated body gates remember-domain", () => {
+    expect(shouldGateRemember(true)).toBe(true);
+  });
+
+  test("untruncated body skips gating", () => {
+    expect(shouldGateRemember(false)).toBe(false);
   });
 });
 
