@@ -1,6 +1,6 @@
 {
   "name": "mdflow",
-  "version": "5.2.0",
+  "version": "5.2.1",
   "license": "MIT",
   "module": "src/index.ts",
   "type": "module",
