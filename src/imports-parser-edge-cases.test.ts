@@ -187,7 +187,6 @@ describe('file import edge cases', () => {
   it('handles line range edge cases', () => {
     const cases = [
       { input: './file.ts:1-1', expected: { start: 1, end: 1 } },
-      { input: './file.ts:10-5', expected: { start: 10, end: 5 } },
       { input: './file.ts:999999-1000000', expected: { start: 999999, end: 1000000 } },
       { input: './file.ts:-1-10', expected: { start: undefined } },
       { input: './file.ts:abc-def', expected: { start: undefined } },
@@ -202,6 +201,12 @@ describe('file import edge cases', () => {
         expect(result.start).toBeUndefined();
       }
     }
+  });
+
+  it('rejects reversed ranges loudly instead of importing empty context', () => {
+    // './file.ts:10-5' parsed leniently before; the empty slice ran the engine
+    // with evidence silently missing. Now it throws at parse time.
+    expect(() => parseLineRange('./file.ts:10-5')).toThrow(/must not exceed end/);
   });
 
   it('handles symbol extraction edge cases', () => {

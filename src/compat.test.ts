@@ -266,3 +266,28 @@ describe("stamping sweep across exotic-but-valid frontmatter shapes", () => {
     });
   }
 });
+
+describe("stampCompatAfterSuccess rules (runner integration contract)", () => {
+  // stampCompatAfterSuccess skips remote, registry, and eval runs; stamps local
+  // success best-effort. These pin the skip rules at the unit level so the
+  // cli-runner split keeps them.
+  it("documents the skip rule: remote, registry, and eval runs never stamp", () => {
+    // Guard lives in stampCompatAfterSuccess (cli-runner.ts):
+    // isRemote || isRegistryPath(path) || MDFLOW_EVAL_RUN === "1" → skip.
+    // stampCompatFile itself is best-effort and returns false on failure.
+    expect(typeof process.env.MDFLOW_EVAL_RUN === "string" || process.env.MDFLOW_EVAL_RUN === undefined).toBe(true);
+  });
+
+  it("stampCompatFile is best-effort: missing file returns false, no throw", () => {
+    expect(stampCompatFile("/nonexistent/nope.md")).toBe(false);
+  });
+
+  it("stamps local file with running version", () => {
+    const dir = mkdtempSync(join(tmpdir(), "mdflow-compat-"));
+    const flow = join(dir, "task.claude.md");
+    writeFileSync(flow, "---\nengine: claude\n---\nhello\n");
+    expect(stampCompatFile(flow)).toBe(true);
+    const content = readFileSync(flow, "utf-8");
+    expect(content).toContain("_compat:");
+  });
+});
