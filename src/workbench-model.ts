@@ -242,6 +242,7 @@ const PREFERRED_ENGINE_ORDER = [
 	"agy",
 	"grok",
 	"kimi",
+	"omp",
 ];
 
 /** Registered engines in composer order: the default first, unknowns last. */
@@ -291,7 +292,7 @@ interface EffortSupport {
 /**
  * Reasoning-effort support per engine, each translated to that CLI's
  * verified control: claude --effort, codex -c model_reasoning_effort=…,
- * pi --thinking. Engines with no verified control are absent — the composer
+ * pi/omp --thinking. Engines with no verified control are absent — the composer
  * hides the field and effortFrontmatter() throws rather than emitting a flag
  * that would break the flow's first run.
  */
@@ -306,6 +307,10 @@ const EFFORT_SUPPORT: Record<string, EffortSupport> = {
 	},
 	pi: {
 		levels: ["off", "minimal", "low", "medium", "high", "xhigh"],
+		frontmatter: (effort) => ({ thinking: effort }),
+	},
+	omp: {
+		levels: ["off", "minimal", "low", "medium", "high", "xhigh", "max", "auto"],
 		frontmatter: (effort) => ({ thinking: effort }),
 	},
 };

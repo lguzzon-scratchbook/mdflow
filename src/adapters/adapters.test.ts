@@ -23,6 +23,7 @@ import { cursorAgentAdapter } from "./cursor-agent";
 import { agyAdapter } from "./agy";
 import { grokAdapter } from "./grok";
 import { kimiAdapter } from "./kimi";
+import { ompAdapter } from "./omp";
 import type { ToolAdapter, AgentFrontmatter } from "../types";
 
 describe("Tool Adapter Registry", () => {
@@ -57,6 +58,10 @@ describe("Tool Adapter Registry", () => {
 
     test("kimi adapter is registered", () => {
       expect(hasAdapter("kimi")).toBe(true);
+    });
+
+    test("omp adapter is registered", () => {
+      expect(hasAdapter("omp")).toBe(true);
     });
 
     test("getRegisteredAdapters returns all built-in adapters", () => {
@@ -434,5 +439,39 @@ describe("Kimi Adapter", () => {
 
   test("has no system-prompt mechanism", () => {
     expect(kimiAdapter.applySystemPrompt).toBeUndefined();
+  });
+});
+
+describe("omp Adapter (oh-my-pi, omp 18.3.2)", () => {
+  test("has correct name", () => {
+    expect(ompAdapter.name).toBe("omp");
+  });
+
+  test("getDefaults is print mode", () => {
+    expect(ompAdapter.getDefaults()).toEqual({ print: true });
+  });
+
+  test("applyInteractiveMode removes print", () => {
+    const result = ompAdapter.applyInteractiveMode({ print: true, model: "opus" });
+    expect(result.print).toBeUndefined();
+    expect(result.model).toBe("opus");
+  });
+
+  test("isolation is partial, not hermetic (no prompt-templates/context-files)", () => {
+    const isolation = ompAdapter.getIsolationDefaults!();
+    expect(isolation).toEqual({
+      "no-extensions": true,
+      "no-skills": true,
+      "no-rules": true,
+      "no-session": true,
+    });
+  });
+
+  test("has no hooks mechanism", () => {
+    expect(ompAdapter.applyHooks).toBeUndefined();
+  });
+
+  test("has no auth bridge (ambient ~/.omp/agent)", () => {
+    expect(ompAdapter.prepareEnv).toBeUndefined();
   });
 });

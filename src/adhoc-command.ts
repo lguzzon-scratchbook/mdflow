@@ -31,6 +31,7 @@ export const SUPPORTED_COMMANDS = [
   "agy",
   "grok",
   "kimi",
+  "omp",
 ] as const;
 
 export type SupportedCommand = string;

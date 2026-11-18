@@ -10,6 +10,7 @@
  *   codex    -c model_instructions_file=<file> / -c developer_instructions=…
  *   gemini   GEMINI_SYSTEM_MD=<file> env var (replace only — no append)
  *   grok     --system-prompt-override <replace> / --rules <append>
+ *   omp      --system-prompt / --append-system-prompt (single value, segments joined)
  *
  * copilot, droid, opencode, cursor-agent, agy, and kimi have no supported
  * mechanism. That is a hard error, not a warning: a flow that declares its
@@ -117,7 +118,7 @@ export function applySystemPromptToFrontmatter(
     throw new CommandError(
       `${command} has no supported system prompt mechanism; remove ` +
         `_system-prompt/_append-system-prompt or switch the flow to an engine ` +
-        `that supports it (claude, codex, gemini, pi).`,
+        `that supports it (claude, codex, gemini, grok, pi, omp).`,
       { errorCode: "SYSTEM_PROMPT_UNSUPPORTED", context: { command } }
     );
   }

@@ -180,6 +180,14 @@ export const kimiPortableAdapter = createPortableAdapter(
   { model: true, temperature: false, maxTokens: false }
 );
 
+// omp supports --model (fuzzy match: "opus", "gpt-5.2", "openai/gpt-5.2");
+// temperature and max-tokens are not exposed in omp --help, so dropped.
+export const ompPortableAdapter = createPortableAdapter(
+  "omp",
+  { model: "model", temperature: "temperature", "max-tokens": "max-tokens" },
+  { model: true, temperature: false, maxTokens: false }
+);
+
 const PORTABLE_ADAPTERS: Record<string, Adapter> = {
   claude: claudePortableAdapter,
   codex: codexPortableAdapter,
@@ -192,6 +200,7 @@ const PORTABLE_ADAPTERS: Record<string, Adapter> = {
   agy: agyPortableAdapter,
   grok: grokPortableAdapter,
   kimi: kimiPortableAdapter,
+  omp: ompPortableAdapter,
 };
 
 /**

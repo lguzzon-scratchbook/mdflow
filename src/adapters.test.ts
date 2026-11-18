@@ -203,4 +203,16 @@ describe("portable adapter translation for v3 engines", () => {
     expect(args).not.toContain("--temperature");
     expect(args).not.toContain("--max-tokens");
   });
+
+  test("omp keeps --model, drops unsupported canonical keys", () => {
+    const args = buildArgs(
+      { model: "opus", temperature: 0.5, "max-tokens": 1024 },
+      new Set(),
+      "omp"
+    );
+
+    expectFlagValue(args, "--model", "opus");
+    expect(args).not.toContain("--temperature");
+    expect(args).not.toContain("--max-tokens");
+  });
 });

@@ -13,9 +13,10 @@
     "cursor-agent",
     "agy",
     "grok",
-    "kimi"
+    "kimi",
+    "omp"
   ],
-  "enginesLabel": "claude, copilot, codex, gemini, droid, opencode, pi, cursor-agent, agy (Antigravity), grok, kimi",
+  "enginesLabel": "claude, copilot, codex, gemini, droid, opencode, pi, cursor-agent, agy (Antigravity), grok, kimi, omp",
   "install": "npx mdflow",
   "repo": "https://github.com/johnlindquist/mdflow",
   "ladder": [
