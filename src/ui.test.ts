@@ -1,9 +1,7 @@
 import { expect, test, describe, beforeEach, afterEach } from "bun:test";
 import type {
   UserInterface,
-  TestUIConfig,
   Choice,
-  RecordedPrompt,
 } from "./ui";
 import {
   ConsoleUI,

@@ -150,8 +150,10 @@ describe("composer engine metadata", () => {
 		expect(effortFrontmatter("pi", "low")).toEqual({ thinking: "low" });
 		expect(effortLevels("omp")).toEqual(["off", "minimal", "low", "medium", "high", "xhigh", "max", "auto"]);
 		expect(effortFrontmatter("omp", "high")).toEqual({ thinking: "high" });
-		expect(effortLevels("aivo")).toEqual(["minimal", "low", "medium", "high", "xhigh"]);
-		expect(effortFrontmatter("aivo", "high")).toEqual({ effort: "high" });
+		expect(effortLevels("aivo")).toEqual([]);
+		expect(() => effortFrontmatter("aivo", "high")).toThrow(
+			"no verified reasoning-effort control",
+		);
 		expect(effortLevels("copilot")).toEqual([]);
 		expect(() => effortFrontmatter("copilot", "high")).toThrow(
 			"no verified reasoning-effort control",

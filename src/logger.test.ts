@@ -1,4 +1,4 @@
-import { expect, test, describe, afterAll, beforeAll } from "bun:test";
+import { expect, test, describe, afterAll } from "bun:test";
 import { getLogDir, getAgentLogPath, listLogDirs, initLogger } from "./logger";
 import { homedir } from "os";
 import { join } from "path";

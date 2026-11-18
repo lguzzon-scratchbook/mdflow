@@ -568,7 +568,7 @@ export const fileSelector = createPrompt<FileSelectorResult, FileSelectorConfig>
       // Add character to filter (printable characters only, including space for path search)
       if (extKey.sequence && extKey.sequence.length === 1 && !extKey.ctrl && !extKey.meta) {
         const char = extKey.sequence;
-        if (char.match(/[\w\-\.\s\/]/)) {
+        if (char.match(/[\w\-.\s/]/)) {
           setSearchState({ ...searchState, filter: filter + char });
           setCursor(0);
           setPreviewScroll(0);

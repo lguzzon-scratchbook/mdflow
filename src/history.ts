@@ -263,7 +263,7 @@ export async function saveVariableValues(
 
   // Merge with existing values (new values override old)
   variableHistoryData![agentPath] = {
-    ...(variableHistoryData![agentPath] ?? {}),
+    ...variableHistoryData![agentPath],
     ...variables,
   };
 
