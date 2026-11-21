@@ -8,12 +8,12 @@
  * re-exports everything so prompt-render.ts / runtime.ts don't change.
  */
 
-import { resolve, dirname, basename, join, relative } from "path";
+import { resolve, dirname, basename, relative } from "path";
 import { realpathSync, statSync } from "fs";
 import { Glob } from "bun";
 import { FileSizeLimitError, exceedsLimit } from "./limits";
 import { estimateTokens, getContextLimit, countTokensAsync } from "./tokenizer";
-import type { ImportAction, ProviderImportAction } from "./imports-types";
+import type { ProviderImportAction } from "./imports-types";
 import { getErrorMessage, ImportError } from "./errors";
 import { runProvider, resolveContextProviderImport } from "./context-providers";
 import {
@@ -21,7 +21,6 @@ import {
   expandTilde,
   getProjectRoot,
   containedImportPath,
-  canonicalCandidate,
   resolveImportPath,
   isBinaryFileAsync,
   type ImportContext,
@@ -118,17 +117,11 @@ export function extractSymbol(content: string, symbolName: string): string {
 
   // Patterns to match symbol declarations
   const patterns = [
-    // interface Name { ... }
     new RegExp(`^(export\\s+)?interface\\s+${symbolName}\\s*(extends\\s+[^{]+)?\\{`),
-    // type Name = ...
     new RegExp(`^(export\\s+)?type\\s+${symbolName}\\s*(<[^>]+>)?\\s*=`),
-    // function Name(...) { ... }
     new RegExp(`^(export\\s+)?(async\\s+)?function\\s+${symbolName}\\s*(<[^>]+>)?\\s*\\(`),
-    // class Name { ... }
     new RegExp(`^(export\\s+)?(abstract\\s+)?class\\s+${symbolName}\\s*(extends\\s+[^{]+)?(implements\\s+[^{]+)?\\{`),
-    // const/let/var Name = ...
     new RegExp(`^(export\\s+)?(const|let|var)\\s+${symbolName}\\s*(:[^=]+)?\\s*=`),
-    // enum Name { ... }
     new RegExp(`^(export\\s+)?enum\\s+${symbolName}\\s*\\{`),
   ];
 
