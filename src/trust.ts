@@ -39,8 +39,15 @@ export function extractDomain(url: string): string {
  * Returns an empty set if the file doesn't exist
  */
 function readHosts(): Set<string> {
-  try { return new Set(readFileSync(KNOWN_HOSTS_FILE, "utf8").split("\n").map(s => s.trim()).filter(s => s && !s.startsWith("#"))); }
-  catch (cause) { if ((cause as NodeJS.ErrnoException).code === "ENOENT") return new Set(); throw cause; }
+  try {
+    const text = readFileSync(KNOWN_HOSTS_FILE, "utf8");
+    const lines = text.split("\n").map(s => s.trim());
+    const names = lines.filter(s => s && !s.startsWith("#"));
+    return new Set(names);
+  } catch (cause) {
+    if ((cause as NodeJS.ErrnoException).code === "ENOENT") return new Set();
+    throw cause;
+  }
 }
 export async function loadKnownHosts(): Promise<Set<string>> { return readHosts(); }
 
@@ -145,11 +152,13 @@ export async function promptForTrust(
   console.error("Command to execute:");
   console.error("-".repeat(70));
   console.error(`  ${displayUntrusted(command)}`);
+
   console.error("");
   console.error("-".repeat(70));
   console.error("Frontmatter (CLI flags):");
   console.error("-".repeat(70));
   console.error(displayUntrusted(formatFrontmatter(frontmatter)));
+
   console.error("");
   console.error("-".repeat(70));
   console.error("Body preview:");
